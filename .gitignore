@@ -1,0 +1,41 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Android
+*.apk
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+
+# Spring Boot / Gradle
+backend/build/
+backend/bin/
+backend/out/
+backend/.gradle/
+*.jar
+*.war
+
+# Embedded git repo
+agent-skills/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Env
+.env
+*.log
