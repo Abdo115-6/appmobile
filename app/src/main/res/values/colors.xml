@@ -3,4 +3,17 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="red">#FF0000</color>
+
+    <color name="primary">#FF00695C</color>
+    <color name="primary_dark">#FF004D40</color>
+    <color name="on_primary">#FFFFFFFF</color>
+    <color name="secondary">#FF26A69A</color>
+    <color name="surface">#FFF5F5F5</color>
+    <color name="on_surface">#FF1C1B1F</color>
+    <color name="on_surface_variant">#FF49454F</color>
+    <color name="error">#FFB3261E</color>
+    <color name="on_error">#FFFFFFFF</color>
+    <color name="error_container">#FFF9DEDC</color>
+    <color name="on_error_container">#FF410E0B</color>
+    <color name="outline">#FF79747E</color>
 </resources>

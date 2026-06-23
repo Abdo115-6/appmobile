@@ -13,10 +13,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductRepository repository;
- @GetMapping("/hello")
-    public String hello() {
-        return "Backend works!";
-    }
+
     public ProductController(ProductRepository repository) {
         this.repository = repository;
     }

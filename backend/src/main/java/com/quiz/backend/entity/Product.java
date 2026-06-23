@@ -20,6 +20,7 @@ public class Product {
     private BigDecimal price;
 
     private String category;
+    
 
     @Column(name = "stock_quantity")
     private Integer stockQuantity;
