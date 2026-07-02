@@ -2,9 +2,9 @@ package com.quiz.backend.controller;
 
 import com.quiz.backend.dto.ArticleResponse;
 import com.quiz.backend.dto.ArticleStockResponse;
-import com.quiz.backend.entity.ArticleStock;
-import com.quiz.backend.repository.ArticleRepository;
-import com.quiz.backend.repository.ArticleStockRepository;
+import com.quiz.backend.entity.ItmMaster;
+import com.quiz.backend.repository.ItmMasterRepository;
+import com.quiz.backend.repository.ItmMvtRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,32 +13,36 @@ import java.util.List;
 @RequestMapping("/api/articles")
 public class ArticleController {
 
-    private final ArticleRepository articleRepository;
-    private final ArticleStockRepository articleStockRepository;
+    private final ItmMasterRepository itmMasterRepository;
+    private final ItmMvtRepository itmMvtRepository;
 
-    public ArticleController(ArticleRepository articleRepository, ArticleStockRepository articleStockRepository) {
-        this.articleRepository = articleRepository;
-        this.articleStockRepository = articleStockRepository;
+    public ArticleController(ItmMasterRepository itmMasterRepository, ItmMvtRepository itmMvtRepository) {
+        this.itmMasterRepository = itmMasterRepository;
+        this.itmMvtRepository = itmMvtRepository;
     }
 
     @GetMapping
     public List<ArticleResponse> getAll() {
-        return articleRepository.findAll().stream()
-                .map(a -> new ArticleResponse(a.getId(), a.getNom()))
+        return itmMasterRepository.findAll().stream()
+                .map(m -> new ArticleResponse(m.getRowid(), m.getItmdes10()))
                 .toList();
     }
 
     @GetMapping("/search")
     public List<ArticleResponse> search(@RequestParam String q) {
-        return articleRepository.findByNomContainingIgnoreCase(q).stream()
-                .map(a -> new ArticleResponse(a.getId(), a.getNom()))
+        return itmMasterRepository.findByItmdes10ContainingIgnoreCase(q).stream()
+                .map(m -> new ArticleResponse(m.getRowid(), m.getItmdes10()))
                 .toList();
     }
 
-    @GetMapping("/{articleId}/stocks")
-    public List<ArticleStockResponse> getStocks(@PathVariable Long articleId) {
-        return articleStockRepository.findByArticleId(articleId).stream()
-                .map(as -> new ArticleStockResponse(as.getSite().getId(), as.getSite().getNom(), as.getQuantite()))
+    @GetMapping("/{rowid}/stocks")
+    public List<ArticleStockResponse> getStocks(@PathVariable Long rowid) {
+        ItmMaster master = itmMasterRepository.findById(rowid).orElseThrow();
+        return itmMvtRepository.findByItmref0(master.getItmref0()).stream()
+                .map(mvt -> new ArticleStockResponse(
+                        0L,
+                        mvt.getStofcy0(),
+                        mvt.getAvcbasqty0() != null ? mvt.getAvcbasqty0().intValue() : 0))
                 .toList();
     }
 }

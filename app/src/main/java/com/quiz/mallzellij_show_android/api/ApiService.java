@@ -4,7 +4,6 @@ import com.quiz.mallzellij_show_android.model.Article;
 import com.quiz.mallzellij_show_android.model.ArticleStock;
 import com.quiz.mallzellij_show_android.model.AuthResponse;
 import com.quiz.mallzellij_show_android.model.LoginRequest;
-import com.quiz.mallzellij_show_android.model.SignupRequest;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -17,9 +16,6 @@ import java.util.List;
 public interface ApiService {
     @POST("api/auth/login")
     Call<AuthResponse> login(@Body LoginRequest request);
-
-    @POST("api/auth/signup")
-    Call<AuthResponse> signup(@Body SignupRequest request);
 
     @GET("api/articles")
     Call<List<Article>> getArticles();

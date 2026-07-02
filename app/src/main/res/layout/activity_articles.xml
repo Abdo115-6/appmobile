@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/surface"
+    android:background="@android:color/black"
     tools:context=".ArticlesActivity">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -27,6 +27,7 @@
         android:layout_margin="16dp"
         app:cardCornerRadius="12dp"
         app:cardElevation="2dp"
+        app:cardBackgroundColor="@color/card_dark"
         app:strokeWidth="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

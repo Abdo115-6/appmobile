@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.quiz.mallzellij_show_android.model.ArticleStock;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> {
@@ -18,6 +19,12 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
     private List<ArticleStock> stocks = new ArrayList<>();
 
     public void setStocks(List<ArticleStock> stocks) {
+        Collections.sort(stocks, (a, b) -> {
+            boolean aZero = a.getQuantity() == 0;
+            boolean bZero = b.getQuantity() == 0;
+            if (aZero != bZero) return aZero ? 1 : -1;
+            return Integer.compare(a.getQuantity(), b.getQuantity());
+        });
         this.stocks = stocks;
         notifyDataSetChanged();
     }

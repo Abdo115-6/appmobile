@@ -17,10 +17,13 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.security:spring-security-crypto")
-    runtimeOnly("com.microsoft.sqlserver:mssql-jdbc")
+    runtimeOnly("net.sourceforge.jtds:jtds:1.3.1")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 }
