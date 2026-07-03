@@ -8,15 +8,20 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanOptions;
 import com.quiz.mallzellij_show_android.api.RetrofitClient;
 import com.quiz.mallzellij_show_android.model.Article;
 
@@ -38,6 +43,13 @@ public class ArticlesActivity extends AppCompatActivity {
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
 
+    private final ActivityResultLauncher<ScanOptions> barcodeLauncher =
+            registerForActivityResult(new ScanContract(), result -> {
+                if (result.getContents() != null) {
+                    lookupBarcode(result.getContents());
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,6 +69,8 @@ public class ArticlesActivity extends AppCompatActivity {
         progress = findViewById(R.id.articlesProgress);
         errorView = findViewById(R.id.articlesError);
         searchInput = findViewById(R.id.searchInput);
+        ImageButton scanButton = findViewById(R.id.scanButton);
+        scanButton.setOnClickListener(v -> startScan());
 
         adapter = new ArticleAdapter(article -> {
             Intent intent = new Intent(this, ArticleStockActivity.class);
@@ -124,6 +138,46 @@ public class ArticlesActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<Article>> call, Throwable t) {
                 progress.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void startScan() {
+        ScanOptions options = new ScanOptions();
+        options.setDesiredBarcodeFormats("QR_CODE");
+        options.setPrompt("Scan a QR code");
+        options.setCameraId(0);
+        options.setBeepEnabled(true);
+        options.setBarcodeImageEnabled(true);
+        options.setOrientationLocked(false);
+        barcodeLauncher.launch(options);
+    }
+
+    private void lookupBarcode(String barcode) {
+        progress.setVisibility(View.VISIBLE);
+        errorView.setVisibility(View.GONE);
+
+        RetrofitClient.getApiService().getArticleByBarcode(barcode).enqueue(new Callback<Article>() {
+            @Override
+            public void onResponse(Call<Article> call, Response<Article> response) {
+                progress.setVisibility(View.GONE);
+                if (response.isSuccessful() && response.body() != null) {
+                    Article article = response.body();
+                    Intent intent = new Intent(ArticlesActivity.this, ArticleStockActivity.class);
+                    intent.putExtra("article_id", article.getId());
+                    intent.putExtra("article_name", article.getNom());
+                    startActivity(intent);
+                } else {
+                    String msg = "Server error: " + response.code() + " for barcode: " + barcode;
+                    showError(msg);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Article> call, Throwable t) {
+                progress.setVisibility(View.GONE);
+                String msg = "Connection error: " + t.getMessage();
+                showError(msg);
             }
         });
     }

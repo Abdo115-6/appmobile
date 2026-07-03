@@ -5,6 +5,7 @@ import com.quiz.backend.dto.ArticleStockResponse;
 import com.quiz.backend.entity.ItmMaster;
 import com.quiz.backend.repository.ItmMasterRepository;
 import com.quiz.backend.repository.ItmMvtRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,10 +36,18 @@ public class ArticleController {
                 .toList();
     }
 
+    @GetMapping("/barcode/{ean}")
+    public ResponseEntity<ArticleResponse> getByBarcode(@PathVariable String ean) {
+        return itmMasterRepository.findByItmref0(ean)
+                .map(m -> ResponseEntity.ok(new ArticleResponse(m.getRowid(), m.getItmdes10())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{rowid}/stocks")
     public List<ArticleStockResponse> getStocks(@PathVariable Long rowid) {
         ItmMaster master = itmMasterRepository.findById(rowid).orElseThrow();
-        return itmMvtRepository.findByItmref0(master.getItmref0()).stream()
+        List<String> sites = List.of("FBC", "FMD");
+        return itmMvtRepository.findByItmref0AndSites(master.getItmref0(), sites).stream()
                 .map(mvt -> new ArticleStockResponse(
                         0L,
                         mvt.getStofcy0(),

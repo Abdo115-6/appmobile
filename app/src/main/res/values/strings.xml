@@ -34,4 +34,6 @@
     <string name="desc_article_list">List of articles</string>
     <string name="desc_stock_list">Stock details list</string>
     <string name="desc_view_stock_button">View stock for this article</string>
+    <string name="scan">Scan</string>
+    <string name="error_article_not_found">Article not found</string>
 </resources>

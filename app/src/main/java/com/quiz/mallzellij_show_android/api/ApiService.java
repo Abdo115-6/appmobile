@@ -23,6 +23,9 @@ public interface ApiService {
     @GET("api/articles/search")
     Call<List<Article>> searchArticles(@Query("q") String query);
 
+    @GET("api/articles/barcode/{ean}")
+    Call<Article> getArticleByBarcode(@Path("ean") String ean);
+
     @GET("api/articles/{articleId}/stocks")
     Call<List<ArticleStock>> getArticleStocks(@Path("articleId") Long articleId);
 }
