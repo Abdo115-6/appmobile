@@ -9,7 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/articles")
@@ -27,15 +29,17 @@ public class ArticleController {
 
     @GetMapping
     public List<ArticleResponse> getAll() {
+        Map<String, Integer> qtyMap = buildQuantityMap();
         return itmMasterRepository.findAll().stream()
-                .map(m -> toResponse(m))
+                .map(m -> toResponse(m, qtyMap))
                 .toList();
     }
 
     @GetMapping("/search")
     public List<ArticleResponse> search(@RequestParam String q) {
+        Map<String, Integer> qtyMap = buildQuantityMap();
         return itmMasterRepository.findByItmdes10ContainingIgnoreCase(q).stream()
-                .map(m -> toResponse(m))
+                .map(m -> toResponse(m, qtyMap))
                 .toList();
     }
 
@@ -43,7 +47,11 @@ public class ArticleController {
     public ResponseEntity<ArticleResponse> getByBarcode(@PathVariable String ean) {
         String ref = ean.trim().split("\\s+")[0];
         return itmMasterRepository.findByItmref0(ref)
-                .map(m -> ResponseEntity.ok(toResponse(m)))
+                .map(m -> {
+                    BigDecimal sum = itmMvtRepository.sumPhyall0ByItmref0AndSites(m.getItmref0(), SITES);
+                    Integer qty = sum != null ? sum.intValue() : 0;
+                    return ResponseEntity.ok(new ArticleResponse(m.getRowid(), m.getItmdes10(), qty));
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -58,9 +66,18 @@ public class ArticleController {
                 .toList();
     }
 
-    private ArticleResponse toResponse(ItmMaster m) {
-        BigDecimal sum = itmMvtRepository.sumPhyall0ByItmref0AndSites(m.getItmref0(), SITES);
-        Integer qty = sum != null ? sum.intValue() : 0;
+    private Map<String, Integer> buildQuantityMap() {
+        Map<String, Integer> map = new HashMap<>();
+        for (Object[] row : itmMvtRepository.sumPhyall0GroupedByItmref0(SITES)) {
+            String ref = (String) row[0];
+            BigDecimal sum = (BigDecimal) row[1];
+            map.put(ref, sum != null ? sum.intValue() : 0);
+        }
+        return map;
+    }
+
+    private ArticleResponse toResponse(ItmMaster m, Map<String, Integer> qtyMap) {
+        Integer qty = qtyMap.getOrDefault(m.getItmref0(), 0);
         return new ArticleResponse(m.getRowid(), m.getItmdes10(), qty);
     }
 }
