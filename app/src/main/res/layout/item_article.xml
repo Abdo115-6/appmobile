@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="4dp"
+    android:layout_marginVertical="6dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="1dp"
     app:strokeWidth="0dp"
@@ -26,16 +26,17 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_marginEnd="8dp">
 
             <TextView
                 android:id="@+id/articleName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
-                android:textColor="@color/on_surface"
+                android:textColor="@android:color/white"
                 android:textStyle="bold"
-                tools:text="Laptop" />
+                tools:text="Laptop Tile Premium" />
 
             <TextView
                 android:id="@+id/articleQuantite"
@@ -43,8 +44,8 @@
                 android:layout_height="wrap_content"
                 android:textSize="13sp"
                 android:textColor="@color/primary"
-                android:layout_marginTop="2dp"
-                tools:text="À louer: 150" />
+                android:layout_marginTop="4dp"
+                tools:text="À louer: 150 Units" />
 
         </LinearLayout>
 
@@ -56,7 +57,8 @@
             android:contentDescription="@string/desc_view_stock_button"
             style="@style/Widget.Material3.Button.TonalButton"
             android:minWidth="0dp"
-            android:paddingHorizontal="16dp" />
+            android:paddingHorizontal="16dp"
+            app:cornerRadius="8dp" />
 
     </LinearLayout>
 

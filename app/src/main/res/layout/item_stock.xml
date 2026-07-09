@@ -6,104 +6,156 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="3dp"
-    app:cardCornerRadius="10dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="@color/card_stroke"
+    app:strokeWidth="0dp"
     app:cardBackgroundColor="@color/card_dark">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingVertical="16dp">
+        android:padding="16dp">
 
-        <!-- First row -->
-        <LinearLayout
+        <!-- Header Module: Site Name Info Block -->
+        <TextView
+            android:id="@+id/siteText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"
+            tools:text="Current Inventory at FMD Site" />
+
+        <!-- Section Row 1: On-Hand Metrics Tracker View -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="On-Hand Stock"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="11sp" />
+
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/siteText"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="16sp"
-                android:textColor="@color/on_surface"
-                tools:text="FBC"/>
+            android:layout_marginTop="2dp">
 
             <TextView
                 android:id="@+id/quantityText"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:textColor="@android:color/white"
                 android:textSize="16sp"
-                android:textColor="@color/primary"
                 android:textStyle="bold"
-                android:gravity="end"
-                tools:text="150"/>
-        </LinearLayout>
+                tools:text="1,162 Units" />
 
-        <!-- Second row -->
-        <LinearLayout
+            <!-- Sleek inline indicator progress tracker bar matching image style -->
+            <ProgressBar
+                android:layout_width="100dp"
+                android:layout_height="6dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerInParent="true"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:progress="65"
+                android:progressTint="@color/primary" />
+        </RelativeLayout>
+
+        <!-- Elegant Separator Line Component -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1AFFFFFF"
+            android:layout_marginVertical="12dp" />
+
+        <!-- Section Row 2: Leased Stock With Warm Orange Palette -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Leased Stock"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="11sp" />
+
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/aLouerSite"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="14sp"
-                android:textColor="@color/primary"
-                android:textStyle="bold"
-                android:text="@string/a_louer"/>
+            android:layout_marginTop="2dp">
 
             <TextView
                 android:id="@+id/quantiteALouer"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textSize="14sp"
-                android:textColor="@color/primary"
+                android:textColor="#FFA726"
+                android:textSize="15sp"
                 android:textStyle="bold"
-                tools:text="150"/>
-        </LinearLayout>
+                tools:text="28 Units" />
 
-        <!-- Third row -->
-        <LinearLayout
+            <TextView
+                android:id="@+id/aLouerSite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:textColor="#FFA726"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="À louer" />
+        </RelativeLayout>
+
+        <!-- Elegant Separator Line Component -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1AFFFFFF"
+            android:layout_marginVertical="12dp" />
+
+        <!-- Section Row 3: Pricing System Architecture configured for MAD -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pricing"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="11sp" />
+
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:orientation="horizontal">
+            android:layout_marginTop="2dp">
 
             <TextView
                 android:id="@+id/prixLabel"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="14sp"
-                android:textColor="@color/secondary"
-                android:textStyle="bold"
-                android:text="Prix"/>
+                android:textColor="@color/on_surface_variant"
+                android:textSize="13sp"
+                tools:text="Unit Price" />
 
-            <TextView
-                android:id="@+id/prixValue"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textSize="14sp"
-                android:textColor="@color/secondary"
-                android:textStyle="bold"
-                tools:text="150.00"/>
-        </LinearLayout>
+                android:layout_alignParentEnd="true"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/prixValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="140.00" />
+
+                <!-- Text-safe currency handling instead of a dollar symbol -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" MAD"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </RelativeLayout>
 
     </LinearLayout>
 
