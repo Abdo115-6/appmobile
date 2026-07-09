@@ -22,15 +22,31 @@
         android:gravity="center_vertical"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/articleName"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="16sp"
-            android:textColor="@color/on_surface"
-            android:textStyle="bold"
-            tools:text="Laptop" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/articleName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textColor="@color/on_surface"
+                android:textStyle="bold"
+                tools:text="Laptop" />
+
+            <TextView
+                android:id="@+id/articleQuantite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="13sp"
+                android:textColor="@color/primary"
+                android:layout_marginTop="2dp"
+                tools:text="À louer: 150" />
+
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/viewStockBtn"

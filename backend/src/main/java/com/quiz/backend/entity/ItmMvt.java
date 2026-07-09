@@ -52,6 +52,9 @@ public class ItmMvt {
     @Column(name = "UPDDATTIM_0")
     private LocalDateTime upddattim0;
 
+    @Column(name = "PHYALL_0")
+    private BigDecimal phyall0;
+
     @Column(name = "YAVCTTC_0")
     private BigDecimal yavcttc0;
 
@@ -95,6 +98,8 @@ public class ItmMvt {
     public void setCredattim0(LocalDateTime credattim0) { this.credattim0 = credattim0; }
     public LocalDateTime getUpddattim0() { return upddattim0; }
     public void setUpddattim0(LocalDateTime upddattim0) { this.upddattim0 = upddattim0; }
+    public BigDecimal getPhyall0() { return phyall0; }
+    public void setPhyall0(BigDecimal phyall0) { this.phyall0 = phyall0; }
     public BigDecimal getYavcttc0() { return yavcttc0; }
     public void setYavcttc0(BigDecimal yavcttc0) { this.yavcttc0 = yavcttc0; }
     public BigDecimal getYpmpdem0() { return ypmpdem0; }

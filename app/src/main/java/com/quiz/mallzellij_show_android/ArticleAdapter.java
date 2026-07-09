@@ -44,6 +44,13 @@ public class ArticleAdapter extends RecyclerView.Adapter<ArticleAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Article article = articles.get(position);
         holder.name.setText(article.getNom());
+        Integer qty = article.getQuantiteALouer();
+        if (qty != null && qty > 0) {
+            holder.quantite.setVisibility(View.VISIBLE);
+            holder.quantite.setText("À louer: " + qty);
+        } else {
+            holder.quantite.setVisibility(View.GONE);
+        }
         holder.viewStockBtn.setOnClickListener(v -> listener.onArticleClick(article));
     }
 
@@ -54,11 +61,13 @@ public class ArticleAdapter extends RecyclerView.Adapter<ArticleAdapter.ViewHold
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView name;
+        TextView quantite;
         MaterialButton viewStockBtn;
 
         ViewHolder(View itemView) {
             super(itemView);
             name = itemView.findViewById(R.id.articleName);
+            quantite = itemView.findViewById(R.id.articleQuantite);
             viewStockBtn = itemView.findViewById(R.id.viewStockBtn);
         }
     }
