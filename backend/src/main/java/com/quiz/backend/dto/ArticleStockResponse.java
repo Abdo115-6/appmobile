@@ -1,16 +1,22 @@
 package com.quiz.backend.dto;
 
+import java.math.BigDecimal;
+
 public class ArticleStockResponse {
     private Long siteId;
     private String siteName;
     private Integer quantity;
+    private Integer quantiteALouer;
+    private BigDecimal prix;
 
     public ArticleStockResponse() {}
 
-    public ArticleStockResponse(Long siteId, String siteName, Integer quantity) {
+    public ArticleStockResponse(Long siteId, String siteName, Integer quantity, Integer quantiteALouer, BigDecimal prix) {
         this.siteId = siteId;
         this.siteName = siteName;
         this.quantity = quantity;
+        this.quantiteALouer = quantiteALouer;
+        this.prix = prix;
     }
 
     public Long getSiteId() { return siteId; }
@@ -19,4 +25,8 @@ public class ArticleStockResponse {
     public void setSiteName(String siteName) { this.siteName = siteName; }
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public Integer getQuantiteALouer() { return quantiteALouer; }
+    public void setQuantiteALouer(Integer quantiteALouer) { this.quantiteALouer = quantiteALouer; }
+    public BigDecimal getPrix() { return prix; }
+    public void setPrix(BigDecimal prix) { this.prix = prix; }
 }

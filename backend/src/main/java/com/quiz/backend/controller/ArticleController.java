@@ -5,6 +5,7 @@ import com.quiz.backend.dto.ArticleStockResponse;
 import com.quiz.backend.entity.ItmMaster;
 import com.quiz.backend.repository.ItmMasterRepository;
 import com.quiz.backend.repository.ItmMvtRepository;
+import com.quiz.backend.repository.SprcListRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,10 +22,12 @@ public class ArticleController {
 
     private final ItmMasterRepository itmMasterRepository;
     private final ItmMvtRepository itmMvtRepository;
+    private final SprcListRepository sprcListRepository;
 
-    public ArticleController(ItmMasterRepository itmMasterRepository, ItmMvtRepository itmMvtRepository) {
+    public ArticleController(ItmMasterRepository itmMasterRepository, ItmMvtRepository itmMvtRepository, SprcListRepository sprcListRepository) {
         this.itmMasterRepository = itmMasterRepository;
         this.itmMvtRepository = itmMvtRepository;
+        this.sprcListRepository = sprcListRepository;
     }
 
     @GetMapping
@@ -58,11 +61,17 @@ public class ArticleController {
     @GetMapping("/{rowid}/stocks")
     public List<ArticleStockResponse> getStocks(@PathVariable Long rowid) {
         ItmMaster master = itmMasterRepository.findById(rowid).orElseThrow();
+        BigDecimal total = itmMvtRepository.sumPhyall0ByItmref0AndSites(master.getItmref0(), SITES);
+        Integer quantiteALouer = total != null ? total.intValue() : 0;
+        BigDecimal price = sprcListRepository.findPrice();
+        BigDecimal prix = price != null ? price : BigDecimal.ZERO;
         return itmMvtRepository.findByItmref0AndSites(master.getItmref0(), SITES).stream()
                 .map(mvt -> new ArticleStockResponse(
                         0L,
                         mvt.getStofcy0(),
-                        mvt.getAvcbasqty0() != null ? mvt.getAvcbasqty0().intValue() : 0))
+                        mvt.getAvcbasqty0() != null ? mvt.getAvcbasqty0().intValue() : 0,
+                        quantiteALouer,
+                        prix))
                 .toList();
     }
 

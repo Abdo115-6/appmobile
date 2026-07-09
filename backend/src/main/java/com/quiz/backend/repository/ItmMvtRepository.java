@@ -1,6 +1,7 @@
 package com.quiz.backend.repository;
 
 import com.quiz.backend.entity.ItmMvt;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.math.BigDecimal;
 import org.springframework.data.jpa.repository.Query;

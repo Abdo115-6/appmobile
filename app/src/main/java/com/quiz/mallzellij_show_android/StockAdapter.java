@@ -40,8 +40,24 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ArticleStock stock = stocks.get(position);
-        holder.siteName.setText(stock.getSiteName());
-        holder.quantity.setText(String.valueOf(stock.getQuantity()));
+        holder.siteText.setText(stock.getSiteName());
+        holder.quantityText.setText(String.valueOf(stock.getQuantity()));
+        if (stock.getQuantiteALouer() != null) {
+            holder.quantiteALouer.setText(String.valueOf(stock.getQuantiteALouer()));
+            holder.quantiteALouer.setVisibility(View.VISIBLE);
+            holder.aLouerSite.setVisibility(View.VISIBLE);
+        } else {
+            holder.quantiteALouer.setVisibility(View.GONE);
+            holder.aLouerSite.setVisibility(View.GONE);
+        }
+        if (stock.getPrix() != null) {
+            holder.prixValue.setText(String.valueOf(stock.getPrix()));
+            holder.prixValue.setVisibility(View.VISIBLE);
+            holder.prixLabel.setVisibility(View.VISIBLE);
+        } else {
+            holder.prixValue.setVisibility(View.GONE);
+            holder.prixLabel.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -50,12 +66,16 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView siteName, quantity;
+        TextView siteText, quantityText, aLouerSite, quantiteALouer, prixLabel, prixValue;
 
         ViewHolder(View itemView) {
             super(itemView);
-            siteName = itemView.findViewById(R.id.siteName);
-            quantity = itemView.findViewById(R.id.quantity);
+            siteText = itemView.findViewById(R.id.siteText);
+            quantityText = itemView.findViewById(R.id.quantityText);
+            aLouerSite = itemView.findViewById(R.id.aLouerSite);
+            quantiteALouer = itemView.findViewById(R.id.quantiteALouer);
+            prixLabel = itemView.findViewById(R.id.prixLabel);
+            prixValue = itemView.findViewById(R.id.prixValue);
         }
     }
 }
