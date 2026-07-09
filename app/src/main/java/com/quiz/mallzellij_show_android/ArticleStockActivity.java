@@ -1,15 +1,20 @@
 package com.quiz.mallzellij_show_android;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.navigation.NavigationView;
 import com.quiz.mallzellij_show_android.api.RetrofitClient;
 import com.quiz.mallzellij_show_android.model.ArticleStock;
 
@@ -35,7 +40,31 @@ public class ArticleStockActivity extends AppCompatActivity {
         String articleName = getIntent().getStringExtra("article_name");
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setNavigationOnClickListener(v -> finish());
+        DrawerLayout drawerLayout = findViewById(R.id.drawerLayout);
+        NavigationView navView = findViewById(R.id.navView);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.nav_open, R.string.nav_close);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+        navView.setCheckedItem(R.id.nav_articles);
+        if (!UserSession.getInstance().isAdmin()) {
+            navView.getMenu().findItem(R.id.nav_inventory).setVisible(false);
+        }
+        navView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_inventory) {
+                startActivity(new Intent(this, InventoryActivity.class));
+                finish();
+            } else if (id == R.id.nav_logout) {
+                UserSession.getInstance().logout();
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+            } else if (id == R.id.nav_articles) {
+                startActivity(new Intent(this, ArticlesActivity.class));
+                finish();
+            }
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
 
         articleNameView = findViewById(R.id.articleName);
         articleNameView.setText(articleName);

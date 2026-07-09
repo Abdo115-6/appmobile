@@ -38,7 +38,8 @@ public class ArticleController {
 
     @GetMapping("/barcode/{ean}")
     public ResponseEntity<ArticleResponse> getByBarcode(@PathVariable String ean) {
-        return itmMasterRepository.findByItmref0(ean)
+        String ref = ean.trim().split("\\s+")[0];
+        return itmMasterRepository.findByItmref0(ref)
                 .map(m -> ResponseEntity.ok(new ArticleResponse(m.getRowid(), m.getItmdes10())))
                 .orElse(ResponseEntity.notFound().build());
     }

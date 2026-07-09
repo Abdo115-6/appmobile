@@ -20,6 +20,9 @@ public class YmobileUser {
     @Column(name = "YID_0")
     private String yid0;
 
+    @Column(name = "YROLE_0")
+    private String yrole0;
+
     @Column(name = "CREDATTIM_0")
     private LocalDateTime credattim0;
 
@@ -42,6 +45,8 @@ public class YmobileUser {
     public void setYpass0(String ypass0) { this.ypass0 = ypass0; }
     public String getYid0() { return yid0; }
     public void setYid0(String yid0) { this.yid0 = yid0; }
+    public String getYrole0() { return yrole0; }
+    public void setYrole0(String yrole0) { this.yrole0 = yrole0; }
     public LocalDateTime getCredattim0() { return credattim0; }
     public void setCredattim0(LocalDateTime credattim0) { this.credattim0 = credattim0; }
     public LocalDateTime getUpddattim0() { return upddattim0; }

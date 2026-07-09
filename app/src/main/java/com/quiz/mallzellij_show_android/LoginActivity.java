@@ -93,6 +93,7 @@ public class LoginActivity extends AppCompatActivity {
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 setLoading(false);
                 if (response.isSuccessful() && response.body() != null) {
+                    UserSession.getInstance().login(response.body());
                     startActivity(new Intent(LoginActivity.this, ArticlesActivity.class));
                     finish();
                 } else {

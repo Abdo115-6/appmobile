@@ -36,4 +36,54 @@
     <string name="desc_view_stock_button">View stock for this article</string>
     <string name="scan">Scan</string>
     <string name="error_article_not_found">Article not found</string>
+    <string name="nav_open">Open navigation drawer</string>
+    <string name="nav_close">Close navigation drawer</string>
+
+    <string name="inventory_title">Inventory</string>
+    <string name="inventory_article_hint">Article</string>
+    <string name="inventory_carton_hint">Carton</string>
+    <string name="inventory_pallet_hint">Pallet</string>
+    <string name="inventory_metre_carre_hint">Metre Carré</string>
+    <string name="inventory_btn">Submit</string>
+    <string name="inventory_loading">Submitting…</string>
+    <string name="desc_inventory_form">Inventory form</string>
+    <string name="desc_inventory_article">Article input</string>
+    <string name="desc_inventory_carton">Carton input</string>
+    <string name="desc_inventory_pallet">Pallet input</string>
+    <string name="desc_inventory_metre_carre">Metre Carré input</string>
+    <string name="desc_inventory_button">Submit inventory</string>
+    <string name="inventory">Inventory</string>
+
+    <string-array name="equipe_options">
+        <item>Équipe 1</item>
+        <item>Équipe 2</item>
+        <item>Équipe 3</item>
+    </string-array>
+
+    <string-array name="depot_options">
+        <item>Dépôt 1</item>
+        <item>Dépôt 2</item>
+        <item>Dépôt 3</item>
+    </string-array>
+
+    <string-array name="zone_options">
+        <item>Zone A</item>
+        <item>Zone B</item>
+        <item>Zone C</item>
+    </string-array>
+
+    <string name="inventory_equipe_hint">Équipe</string>
+    <string name="desc_inventory_equipe">Équipe dropdown</string>
+
+    <string name="inventory_depot">Depot</string>
+    <string name="inventory_depot_hint">Dépôt</string>
+    <string name="desc_inventory_depot">Dépôt dropdown</string>
+
+    <string name="inventory_categories">Categories</string>
+    <string name="inventory_zone_hint">Zone</string>
+    <string name="desc_inventory_zone">Zone dropdown</string>
+
+    <string name="inventory_submitted">Inventory submitted</string>
+
+    <string name="inventory_categoris">Categoris</string>
 </resources>

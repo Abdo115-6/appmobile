@@ -22,8 +22,8 @@ public class AuthController {
         return userRepository.findByYlogin0(request.getEmail())
                 .filter(user -> request.getPassword().equals(user.getYpass0().trim()))
                 .map(user -> ResponseEntity.ok(
-                        new AuthResponse(user.getRowid(), user.getYid0(), user.getYlogin0().trim(), "Login successful")))
+                        new AuthResponse(user.getRowid(), user.getYid0(), user.getYlogin0().trim(), user.getYrole0(), "Login successful")))
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new AuthResponse(null, null, null, "Invalid email or password")));
+                        .body(new AuthResponse(null, null, null, null, "Invalid email or password")));
     }
 }
