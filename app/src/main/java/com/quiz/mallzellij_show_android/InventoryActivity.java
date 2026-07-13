@@ -491,8 +491,8 @@ public class InventoryActivity extends AppCompatActivity {
     }
 
     private String saveToDownloads(byte[] data) {
+        String ext = "xlsx".equals(downloadFormat) ? ".xlsx" : ".csv";
         try {
-            String ext = "xlsx".equals(downloadFormat) ? ".xlsx" : ".csv";
             File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             if (dir.exists() || dir.mkdirs()) {
                 File dest = new File(dir, "inventory" + ext);
