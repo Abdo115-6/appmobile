@@ -3,11 +3,14 @@ package com.quiz.backend.controller;
 import com.quiz.backend.dto.InventoryRequest;
 import com.quiz.backend.entity.Inventory;
 import com.quiz.backend.repository.InventoryRepository;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.ByteBuffer;
@@ -44,13 +47,21 @@ public class InventoryController {
     }
 
     @GetMapping("/export")
-    public ResponseEntity<byte[]> exportCsv(
+    public ResponseEntity<byte[]> export(
             @RequestParam(required = false) String depot,
             @RequestParam(required = false) String equipe,
-            @RequestParam(required = false) String zone) {
+            @RequestParam(required = false) String zone,
+            @RequestParam(defaultValue = "csv") String format) {
 
         List<Inventory> list = inventoryRepository.findFiltered(depot, equipe, zone);
 
+        if ("xlsx".equalsIgnoreCase(format)) {
+            return exportXlsx(list);
+        }
+        return exportCsv(list);
+    }
+
+    private ResponseEntity<byte[]> exportCsv(List<Inventory> list) {
         String header = "YNUM_0,YDEPOT_0,YEQUIPE_0,YZONE_0,YITMREF_0,YQTYPLT_0,YQTYCRT_0,YQTYMTR_0,CREUSR_0,CREDATTIM_0";
         String body = list.stream()
                 .map(i -> String.join(",",
@@ -78,6 +89,56 @@ public class InventoryController {
         headers.setContentDispositionFormData("attachment", "inventory.csv");
 
         return ResponseEntity.ok().headers(headers).body(csv);
+    }
+
+    private ResponseEntity<byte[]> exportXlsx(List<Inventory> list) {
+        try (Workbook wb = new XSSFWorkbook(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("Inventory");
+            Row headerRow = sheet.createRow(0);
+            String[] cols = {"YNUM_0","YDEPOT_0","YEQUIPE_0","YZONE_0","YITMREF_0","YQTYPLT_0","YQTYCRT_0","YQTYMTR_0","CREUSR_0","CREDATTIM_0"};
+            for (int i = 0; i < cols.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(cols[i]);
+                cell.setCellStyle(boldStyle(wb));
+            }
+
+            int r = 1;
+            for (Inventory inv : list) {
+                Row row = sheet.createRow(r++);
+                row.createCell(0).setCellValue(safeStr(inv.getYnum0()));
+                row.createCell(1).setCellValue(safeStr(inv.getYdepot0()));
+                row.createCell(2).setCellValue(safeStr(inv.getYequipe0()));
+                row.createCell(3).setCellValue(safeStr(inv.getYzone0()));
+                row.createCell(4).setCellValue(safeStr(inv.getYitmref0()));
+                row.createCell(5).setCellValue(inv.getYqtyplt0() != null ? inv.getYqtyplt0().setScale(2, RoundingMode.HALF_UP).doubleValue() : 0);
+                row.createCell(6).setCellValue(inv.getYqtycrt0() != null ? inv.getYqtycrt0().setScale(2, RoundingMode.HALF_UP).doubleValue() : 0);
+                row.createCell(7).setCellValue(inv.getYqtymtr0() != null ? inv.getYqtymtr0().setScale(2, RoundingMode.HALF_UP).doubleValue() : 0);
+                row.createCell(8).setCellValue(safeStr(inv.getCreusr0()));
+                row.createCell(9).setCellValue(inv.getCredattim0() != null ? inv.getCredattim0().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : "");
+            }
+
+            for (int i = 0; i < cols.length; i++) sheet.autoSizeColumn(i);
+            wb.write(baos);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDispositionFormData("attachment", "inventory.xlsx");
+            return ResponseEntity.ok().headers(headers).body(baos.toByteArray());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private CellStyle boldStyle(Workbook wb) {
+        CellStyle style = wb.createCellStyle();
+        Font font = wb.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        return style;
+    }
+
+    private String safeStr(String s) {
+        return s != null ? s : "";
     }
 
     private String safe(String s) {

@@ -131,7 +131,7 @@ public class InventoryActivity extends AppCompatActivity {
         inventoryBtn.setOnClickListener(v -> submitInventory());
 
         MaterialButton downloadCsvBtn = findViewById(R.id.downloadCsvBtn);
-        downloadCsvBtn.setOnClickListener(v -> downloadCsv());
+        downloadCsvBtn.setOnClickListener(v -> downloadInventory());
 
         ImageButton scanArticleBtn = findViewById(R.id.scanArticleBtn);
         scanArticleBtn.setOnClickListener(v -> startScan());
@@ -346,9 +346,19 @@ public class InventoryActivity extends AppCompatActivity {
            inventoryZone.setOnClickListener(v -> inventoryZone.showDropDown());
     }
 
-    private String downloadDepot, downloadEquipe, downloadZone;
+    private String downloadDepot, downloadEquipe, downloadZone, downloadFormat;
 
-    private void downloadCsv() {
+    private void downloadInventory() {
+        new AlertDialog.Builder(this)
+                .setTitle("Choose format")
+                .setItems(new CharSequence[]{"CSV", "XLSX"}, (dialog, which) -> {
+                    downloadFormat = which == 0 ? "csv" : "xlsx";
+                    showFilterDialog();
+                })
+                .show();
+    }
+
+    private void showFilterDialog() {
         String[] equipes = getResources().getStringArray(R.array.equipe_options);
         String[] depots = getResources().getStringArray(R.array.depot_options);
         String[] zones = getResources().getStringArray(R.array.zone_options);
@@ -416,7 +426,7 @@ public class InventoryActivity extends AppCompatActivity {
         setLoading(true);
 
         ApiService api = RetrofitClient.getApiService();
-        api.downloadCsv(downloadDepot, downloadEquipe, downloadZone)
+        api.downloadCsv(downloadDepot, downloadEquipe, downloadZone, downloadFormat)
                 .enqueue(new Callback<ResponseBody>() {
                     @Override
                     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -424,17 +434,21 @@ public class InventoryActivity extends AppCompatActivity {
                         if (response.isSuccessful() && response.body() != null) {
                             try {
                                 final byte[] data = response.body().bytes();
-                                File cacheFile = new File(getCacheDir(), "inventory.csv");
+                                String ext = "xlsx".equals(downloadFormat) ? ".xlsx" : ".csv";
+                                File cacheFile = new File(getCacheDir(), "inventory" + ext);
                                 FileOutputStream fos = new FileOutputStream(cacheFile);
                                 fos.write(data);
                                 fos.close();
 
                                 String msg = "Saved to " + cacheFile.getAbsolutePath();
 
+                                String fileName = "inventory" + ("xlsx".equals(downloadFormat) ? ".xlsx" : ".csv");
+                                String mime = "xlsx".equals(downloadFormat) ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "text/csv";
+
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                     ContentValues values = new ContentValues();
-                                    values.put(MediaStore.Downloads.DISPLAY_NAME, "inventory.csv");
-                                    values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+                                    values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+                                    values.put(MediaStore.Downloads.MIME_TYPE, mime);
                                     values.put(MediaStore.Downloads.IS_PENDING, 1);
                                     Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                                     if (uri != null) {
@@ -449,19 +463,10 @@ public class InventoryActivity extends AppCompatActivity {
                                             values.clear();
                                             values.put(MediaStore.Downloads.IS_PENDING, 0);
                                             getContentResolver().update(uri, values, null, null);
-                                            msg = "Saved to Downloads/inventory.csv";
+                                            msg = "Saved to Downloads/" + fileName;
                                         }
                                     }
                                 } else {
-                                    int permission = ContextCompat.checkSelfPermission(InventoryActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                                    if (permission != PackageManager.PERMISSION_GRANTED) {
-                                        pendingCsvData = data;
-                                        ActivityCompat.requestPermissions(InventoryActivity.this,
-                                                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                                                WRITE_PERMISSION_CODE);
-                                        Toast.makeText(InventoryActivity.this, msg, Toast.LENGTH_LONG).show();
-                                        return;
-                                    }
                                     msg = saveToDownloads(data);
                                 }
 
@@ -487,16 +492,17 @@ public class InventoryActivity extends AppCompatActivity {
 
     private String saveToDownloads(byte[] data) {
         try {
+            String ext = "xlsx".equals(downloadFormat) ? ".xlsx" : ".csv";
             File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             if (dir.exists() || dir.mkdirs()) {
-                File dest = new File(dir, "inventory.csv");
+                File dest = new File(dir, "inventory" + ext);
                 FileOutputStream out = new FileOutputStream(dest);
                 out.write(data);
                 out.close();
-                return "Saved to Downloads/inventory.csv";
+                return "Saved to Downloads/inventory" + ext;
             }
         } catch (Exception ignored) {}
-        return "Saved to " + getCacheDir() + "/inventory.csv";
+        return "Saved to " + getCacheDir() + "/inventory" + ext;
     }
 
     @Override

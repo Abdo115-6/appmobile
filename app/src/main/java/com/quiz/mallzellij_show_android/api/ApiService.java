@@ -38,5 +38,6 @@ public interface ApiService {
     @GET("api/inventory/export")
     Call<ResponseBody> downloadCsv(@Query("depot") String depot,
                                    @Query("equipe") String equipe,
-                                   @Query("zone") String zone);
+                                   @Query("zone") String zone,
+                                   @Query("format") String format);
 }

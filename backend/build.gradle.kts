@@ -17,6 +17,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.security:spring-security-crypto")
+    implementation("org.apache.poi:poi-ooxml:5.4.0")
     runtimeOnly("net.sourceforge.jtds:jtds:1.3.1")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
