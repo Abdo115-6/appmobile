@@ -8,7 +8,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -48,7 +51,7 @@ public class InventoryController {
 
         List<Inventory> list = inventoryRepository.findFiltered(depot, equipe, zone);
 
-        String header = "YNUM_0,YDEPOT_0,YEQUIPE_0,YZONE_0,YITMREF_0,YQTYPLT_0,YQTYCRT_0,YQTYMTR_0,CREUSR_0,CREDATTIM_0\n";
+        String header = "YNUM_0,YDEPOT_0,YEQUIPE_0,YZONE_0,YITMREF_0,YQTYPLT_0,YQTYCRT_0,YQTYMTR_0,CREUSR_0,CREDATTIM_0";
         String body = list.stream()
                 .map(i -> String.join(",",
                         safe(i.getYnum0()),
@@ -56,18 +59,22 @@ public class InventoryController {
                         safe(i.getYequipe0()),
                         safe(i.getYzone0()),
                         safe(i.getYitmref0()),
-                        i.getYqtyplt0() != null ? i.getYqtyplt0().toPlainString() : "0",
-                        i.getYqtycrt0() != null ? i.getYqtycrt0().toPlainString() : "0",
-                        i.getYqtymtr0() != null ? i.getYqtymtr0().toPlainString() : "0",
+                        fmt(i.getYqtyplt0()),
+                        fmt(i.getYqtycrt0()),
+                        fmt(i.getYqtymtr0()),
                         safe(i.getCreusr0()),
                         i.getCredattim0() != null ? i.getCredattim0().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : ""
                 ))
                 .collect(Collectors.joining("\n"));
 
-        byte[] csv = (header + body).getBytes();
+        byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] content = (header + "\n" + body).getBytes(StandardCharsets.UTF_8);
+        byte[] csv = new byte[bom.length + content.length];
+        System.arraycopy(bom, 0, csv, 0, bom.length);
+        System.arraycopy(content, 0, csv, bom.length, content.length);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentType(MediaType.parseMediaType("text/csv; charset=utf-8"));
         headers.setContentDispositionFormData("attachment", "inventory.csv");
 
         return ResponseEntity.ok().headers(headers).body(csv);
@@ -75,6 +82,10 @@ public class InventoryController {
 
     private String safe(String s) {
         return s != null ? "\"" + s.replace("\"", "\"\"") + "\"" : "";
+    }
+
+    private String fmt(BigDecimal n) {
+        return n != null ? n.setScale(2, RoundingMode.HALF_UP).toPlainString() : "0.00";
     }
 
     @PostMapping

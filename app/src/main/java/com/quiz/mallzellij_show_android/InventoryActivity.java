@@ -1,10 +1,19 @@
 package com.quiz.mallzellij_show_android;
 
 import android.app.AlertDialog;
+import android.Manifest;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.text.Editable;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
@@ -21,6 +30,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -49,6 +61,9 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class InventoryActivity extends AppCompatActivity {
+
+    private static final int WRITE_PERMISSION_CODE = 100;
+    private byte[] pendingCsvData;
 
     private AutoCompleteTextView inventoryEquipe, inventoryDepot, inventoryZone;
     private TextInputEditText inventoryArticle, inventoryPallet, inventoryCarton, inventoryMetreCarre;
@@ -331,31 +346,128 @@ public class InventoryActivity extends AppCompatActivity {
            inventoryZone.setOnClickListener(v -> inventoryZone.showDropDown());
     }
 
-    private void downloadCsv() {
-        String equipe = inventoryEquipe.getText().toString().trim();
-        String depot = inventoryDepot.getText().toString().trim();
-        String zone = inventoryZone.getText().toString().trim();
+    private String downloadDepot, downloadEquipe, downloadZone;
 
-        RetrofitClient.getApiService()
-                .downloadCsv(
-                        depot.isEmpty() ? null : depot,
-                        equipe.isEmpty() ? null : equipe,
-                        zone.isEmpty() ? null : zone
-                )
+    private void downloadCsv() {
+        String[] equipes = getResources().getStringArray(R.array.equipe_options);
+        String[] depots = getResources().getStringArray(R.array.depot_options);
+        String[] zones = getResources().getStringArray(R.array.zone_options);
+
+        String[] allEquipes = new String[equipes.length + 1];
+        String[] allDepots = new String[depots.length + 1];
+        String[] allZones = new String[zones.length + 1];
+
+        allEquipes[0] = "All"; allDepots[0] = "All"; allZones[0] = "All";
+        System.arraycopy(equipes, 0, allEquipes, 1, equipes.length);
+        System.arraycopy(depots, 0, allDepots, 1, depots.length);
+        System.arraycopy(zones, 0, allZones, 1, zones.length);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(40, 16, 40, 8);
+
+        AutoCompleteTextView depotDropdown = addDropdown(layout, "Dépôt", allDepots);
+        AutoCompleteTextView equipeDropdown = addDropdown(layout, "Équipe", allEquipes);
+        AutoCompleteTextView zoneDropdown = addDropdown(layout, "Zone", allZones);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Download CSV - Filters")
+                .setView(layout)
+                .setPositiveButton("Download", (dialog, which) -> {
+                    downloadDepot = depotDropdown.getText().toString().equals("All") ? null : depotDropdown.getText().toString();
+                    downloadEquipe = equipeDropdown.getText().toString().equals("All") ? null : equipeDropdown.getText().toString();
+                    downloadZone = zoneDropdown.getText().toString().equals("All") ? null : zoneDropdown.getText().toString();
+                    fetchAndSaveCsv();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private AutoCompleteTextView addDropdown(LinearLayout parent, String hint, String[] items) {
+        TextView label = new TextView(this);
+        label.setText(hint);
+        label.setTextColor(getColor(R.color.on_surface));
+        label.setTextSize(14);
+        parent.addView(label);
+
+        AutoCompleteTextView ac = new AutoCompleteTextView(this);
+        ac.setInputType(InputType.TYPE_NULL);
+        ac.setFocusable(false);
+        ac.setClickable(true);
+        ac.setText(items[0]);
+        ac.setTextColor(getColor(R.color.on_surface));
+        ac.setHintTextColor(getColor(R.color.on_surface_variant));
+        ac.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, items));
+        ac.setOnClickListener(v -> ac.showDropDown());
+        ac.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        View spacer = new View(this);
+        spacer.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 24));
+
+        parent.addView(ac);
+        parent.addView(spacer);
+        return ac;
+    }
+
+    private void fetchAndSaveCsv() {
+        setLoading(true);
+
+        ApiService api = RetrofitClient.getApiService();
+        api.downloadCsv(downloadDepot, downloadEquipe, downloadZone)
                 .enqueue(new Callback<ResponseBody>() {
                     @Override
                     public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        setLoading(false);
                         if (response.isSuccessful() && response.body() != null) {
                             try {
-                                byte[] data = response.body().bytes();
-                                File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                                File file = new File(dir, "inventory.csv");
-                                FileOutputStream fos = new FileOutputStream(file);
+                                final byte[] data = response.body().bytes();
+                                File cacheFile = new File(getCacheDir(), "inventory.csv");
+                                FileOutputStream fos = new FileOutputStream(cacheFile);
                                 fos.write(data);
                                 fos.close();
-                                Toast.makeText(InventoryActivity.this, "Saved to Downloads/inventory.csv", Toast.LENGTH_LONG).show();
-                            } catch (IOException e) {
-                                inventoryError.setText("Error saving file");
+
+                                String msg = "Saved to " + cacheFile.getAbsolutePath();
+
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    ContentValues values = new ContentValues();
+                                    values.put(MediaStore.Downloads.DISPLAY_NAME, "inventory.csv");
+                                    values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+                                    values.put(MediaStore.Downloads.IS_PENDING, 1);
+                                    Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                                    if (uri != null) {
+                                        java.io.InputStream is = new java.io.FileInputStream(cacheFile);
+                                        java.io.OutputStream os = getContentResolver().openOutputStream(uri);
+                                        if (os != null) {
+                                            byte[] buf = new byte[4096];
+                                            int n;
+                                            while ((n = is.read(buf)) > 0) os.write(buf, 0, n);
+                                            is.close();
+                                            os.close();
+                                            values.clear();
+                                            values.put(MediaStore.Downloads.IS_PENDING, 0);
+                                            getContentResolver().update(uri, values, null, null);
+                                            msg = "Saved to Downloads/inventory.csv";
+                                        }
+                                    }
+                                } else {
+                                    int permission = ContextCompat.checkSelfPermission(InventoryActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                                    if (permission != PackageManager.PERMISSION_GRANTED) {
+                                        pendingCsvData = data;
+                                        ActivityCompat.requestPermissions(InventoryActivity.this,
+                                                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                                WRITE_PERMISSION_CODE);
+                                        Toast.makeText(InventoryActivity.this, msg, Toast.LENGTH_LONG).show();
+                                        return;
+                                    }
+                                    msg = saveToDownloads(data);
+                                }
+
+                                Toast.makeText(InventoryActivity.this, msg, Toast.LENGTH_LONG).show();
+                            } catch (Exception e) {
+                                inventoryError.setText("Save error: " + e.getMessage());
                                 inventoryError.setVisibility(View.VISIBLE);
                             }
                         } else {
@@ -366,10 +478,36 @@ public class InventoryActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        setLoading(false);
                         inventoryError.setText(getString(R.string.inventory_error));
                         inventoryError.setVisibility(View.VISIBLE);
                     }
                 });
+    }
+
+    private String saveToDownloads(byte[] data) {
+        try {
+            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (dir.exists() || dir.mkdirs()) {
+                File dest = new File(dir, "inventory.csv");
+                FileOutputStream out = new FileOutputStream(dest);
+                out.write(data);
+                out.close();
+                return "Saved to Downloads/inventory.csv";
+            }
+        } catch (Exception ignored) {}
+        return "Saved to " + getCacheDir() + "/inventory.csv";
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == WRITE_PERMISSION_CODE && grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED && pendingCsvData != null) {
+            String msg = saveToDownloads(pendingCsvData);
+            pendingCsvData = null;
+            Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+        }
     }
 
     private void startScan() {

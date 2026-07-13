@@ -40,4 +40,8 @@ public class RetrofitClient {
     public static ApiService getApiService() {
         return getInstance().create(ApiService.class);
     }
+
+    public static String getBaseUrl() {
+        return BASE_URL;
+    }
 }
