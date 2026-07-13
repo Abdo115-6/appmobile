@@ -47,7 +47,7 @@ public class ArticleAdapter extends RecyclerView.Adapter<ArticleAdapter.ViewHold
         Integer qty = article.getQuantiteALouer();
         if (qty != null && qty > 0) {
             holder.quantite.setVisibility(View.VISIBLE);
-            holder.quantite.setText("À louer: " + qty);
+            holder.quantite.setText("A louer: " + String.format("%,d", qty));
         } else {
             holder.quantite.setVisibility(View.GONE);
         }

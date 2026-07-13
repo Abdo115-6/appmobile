@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="200dp"
+    android:orientation="vertical"
+    android:gravity="bottom"
+    android:padding="20dp"
+    android:background="@drawable/drawer_header_bg">
+
+    <ImageView
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:src="@drawable/mallzellij_logo"
+        android:contentDescription="@string/desc_logo"
+        android:layout_marginBottom="12dp"
+        android:scaleType="fitCenter" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="MallZellij"
+        android:textSize="24sp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DataShow"
+        android:textSize="13sp"
+        android:textColor="@color/on_surface_variant"
+        android:layout_marginTop="2dp" />
+
+    <View
+        android:layout_width="32dp"
+        android:layout_height="2dp"
+        android:layout_marginTop="12dp"
+        android:background="@color/white" />
+
+</LinearLayout>

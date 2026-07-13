@@ -10,16 +10,18 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/black"
+        android:background="@color/surface"
         tools:context=".InventoryActivity">
 
+    <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
+        android:layout_height="72dp"
+        android:background="@color/surface"
         app:title="@string/inventory_title"
-        app:titleTextColor="@color/on_primary"
+        app:titleTextColor="@color/white"
+        app:popupTheme="@style/ThemeOverlay.Material3.Dark"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -28,6 +30,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="16dp"
+        android:overScrollMode="never"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
@@ -37,40 +40,56 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:contentDescription="@string/desc_inventory_form"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
             app:cardBackgroundColor="@color/card_dark"
-            app:strokeWidth="0dp">
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/card_stroke">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="28dp">
+
+                <!-- Section: Categories -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Categories"
+                    android:textSize="10sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.12"
+                    android:fontFamily="sans-serif-medium" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/inventory_categoris"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="@color/primary" />
+                    android:textColor="@color/white"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="20dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
                     android:hint="@string/inventory_equipe_hint"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary"
-                    app:endIconMode="dropdown_menu">
+                    style="@style/DropdownStyle"
+                    app:endIconMode="dropdown_menu"
+                    app:endIconTint="@color/on_surface_variant"
+                    app:boxBackgroundColor="@color/surface_variant">
 
                     <androidx.appcompat.widget.AppCompatAutoCompleteTextView
                         android:id="@+id/inventoryEquipe"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="none"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/on_surface_variant"
                         android:contentDescription="@string/desc_inventory_equipe"
                         android:nextFocusDown="@+id/inventoryDepot"
                         android:focusable="false"
@@ -81,32 +100,25 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginVertical="16dp"
-                    android:background="@color/outline" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/inventory_depot"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary" />
+                    android:layout_marginVertical="20dp"
+                    android:background="@color/card_stroke" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
                     android:hint="@string/inventory_depot_hint"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary"
-                    app:endIconMode="dropdown_menu">
+                    style="@style/DropdownStyle"
+                    app:endIconMode="dropdown_menu"
+                    app:endIconTint="@color/on_surface_variant"
+                    app:boxBackgroundColor="@color/surface_variant">
 
                     <androidx.appcompat.widget.AppCompatAutoCompleteTextView
                         android:id="@+id/inventoryDepot"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="none"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/on_surface_variant"
                         android:contentDescription="@string/desc_inventory_depot"
                         android:nextFocusDown="@+id/inventoryZone"
                         android:focusable="false"
@@ -117,32 +129,25 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginVertical="16dp"
-                    android:background="@color/outline" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/inventory_categories"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary" />
+                    android:layout_marginVertical="20dp"
+                    android:background="@color/card_stroke" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
                     android:hint="@string/inventory_zone_hint"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary"
-                    app:endIconMode="dropdown_menu">
+                    style="@style/DropdownStyle"
+                    app:endIconMode="dropdown_menu"
+                    app:endIconTint="@color/on_surface_variant"
+                    app:boxBackgroundColor="@color/surface_variant">
 
                     <androidx.appcompat.widget.AppCompatAutoCompleteTextView
                         android:id="@+id/inventoryZone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="none"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/on_surface_variant"
                         android:contentDescription="@string/desc_inventory_zone"
                         android:nextFocusDown="@+id/scanArticleBtn"
                         android:focusable="false"
@@ -153,29 +158,42 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginVertical="16dp"
-                    android:background="@color/outline" />
+                    android:layout_marginVertical="20dp"
+                    android:background="@color/card_stroke" />
+
+                <!-- Section: Article & Quantities -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Article &amp; Quantities"
+                    android:textSize="10sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.12"
+                    android:fontFamily="sans-serif-medium" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="12dp">
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:hint="@string/inventory_article_hint"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary">
+                        style="@style/InputStyle"
+                        app:boxBackgroundColor="@color/surface_variant">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inventoryArticle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="text"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/on_surface_variant"
                             android:contentDescription="@string/desc_inventory_article"
                             android:nextFocusDown="@+id/inventoryPallet" />
 
@@ -183,12 +201,12 @@
 
                     <ImageButton
                         android:id="@+id/scanArticleBtn"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
                         android:src="@android:drawable/ic_menu_camera"
                         android:contentDescription="@string/scan"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:tint="@color/primary"
+                        android:background="@drawable/scan_button_bg"
+                        android:tint="@color/white"
                         android:layout_marginStart="8dp" />
 
                 </LinearLayout>
@@ -196,17 +214,18 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
                     android:hint="@string/inventory_pallet_hint"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary">
+                    style="@style/InputStyle"
+                    app:boxBackgroundColor="@color/surface_variant">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inventoryPallet"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="number"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/on_surface_variant"
                         android:contentDescription="@string/desc_inventory_pallet"
                         android:nextFocusDown="@+id/inventoryCarton" />
 
@@ -215,17 +234,18 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
                     android:hint="@string/inventory_carton_hint"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary">
+                    style="@style/InputStyle"
+                    app:boxBackgroundColor="@color/surface_variant">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inventoryCarton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="number"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/on_surface_variant"
                         android:contentDescription="@string/desc_inventory_carton"
                         android:nextFocusDown="@+id/inventoryMetreCarre" />
 
@@ -234,18 +254,20 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
                     android:hint="@string/inventory_metre_carre_hint"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary"
-                    app:suffixText="m²">
+                    style="@style/InputStyle"
+                    app:suffixText="m2"
+                    app:suffixTextColor="@color/on_surface_variant"
+                    app:boxBackgroundColor="@color/surface_variant">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inventoryMetreCarre"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="numberDecimal"
+                        android:textColor="@color/white"
+                        android:textColorHint="@color/on_surface_variant"
                         android:contentDescription="@string/desc_inventory_metre_carre"
                         android:nextFocusDown="@+id/inventoryBtn" />
 
@@ -254,23 +276,33 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/inventoryBtn"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="28dp"
                     android:text="@string/inventory_btn"
+                    android:textSize="16sp"
                     android:contentDescription="@string/desc_inventory_button"
-                    style="@style/Widget.Material3.Button"
-                    app:backgroundTint="@color/primary"
+                    style="@style/PrimaryButton" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/downloadCsvBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
+                    android:text="Download CSV"
+                    android:textSize="14sp"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    app:strokeColor="@color/primary"
                     app:rippleColor="@color/primary_dark" />
 
                 <ProgressBar
                     android:id="@+id/inventoryProgress"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
                     android:visibility="gone"
                     android:contentDescription="@string/desc_loading"
                     android:importantForAccessibility="yes"
-                    android:indeterminateTint="@color/primary"
+                    android:indeterminateTint="@color/white"
                     android:layout_gravity="center" />
 
                 <TextView
@@ -279,9 +311,9 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/error"
                     android:visibility="gone"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="12dp"
                     android:gravity="center"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:importantForAccessibility="yes" />
 
             </LinearLayout>
@@ -298,8 +330,9 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:menu="@menu/drawer_menu"
-        android:background="@color/surface"
-        app:itemTextColor="@color/on_surface"
-        app:itemIconTint="@color/on_surface" />
+        app:headerLayout="@layout/drawer_header"
+        android:background="@color/surface_variant"
+        app:itemTextColor="@color/white"
+        app:itemIconTint="@color/on_surface_variant" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

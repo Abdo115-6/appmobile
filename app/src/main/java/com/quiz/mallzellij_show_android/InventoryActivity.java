@@ -3,6 +3,7 @@ package com.quiz.mallzellij_show_android;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -13,6 +14,13 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import okhttp3.ResponseBody;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -106,6 +114,9 @@ public class InventoryActivity extends AppCompatActivity {
         inventoryMetreCarreLayout = (TextInputLayout) inventoryMetreCarre.getParent().getParent();
 
         inventoryBtn.setOnClickListener(v -> submitInventory());
+
+        MaterialButton downloadCsvBtn = findViewById(R.id.downloadCsvBtn);
+        downloadCsvBtn.setOnClickListener(v -> downloadCsv());
 
         ImageButton scanArticleBtn = findViewById(R.id.scanArticleBtn);
         scanArticleBtn.setOnClickListener(v -> startScan());
@@ -318,6 +329,47 @@ public class InventoryActivity extends AppCompatActivity {
            inventoryEquipe.setOnClickListener(v -> inventoryEquipe.showDropDown());
            inventoryDepot.setOnClickListener(v -> inventoryDepot.showDropDown());
            inventoryZone.setOnClickListener(v -> inventoryZone.showDropDown());
+    }
+
+    private void downloadCsv() {
+        String equipe = inventoryEquipe.getText().toString().trim();
+        String depot = inventoryDepot.getText().toString().trim();
+        String zone = inventoryZone.getText().toString().trim();
+
+        RetrofitClient.getApiService()
+                .downloadCsv(
+                        depot.isEmpty() ? null : depot,
+                        equipe.isEmpty() ? null : equipe,
+                        zone.isEmpty() ? null : zone
+                )
+                .enqueue(new Callback<ResponseBody>() {
+                    @Override
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            try {
+                                byte[] data = response.body().bytes();
+                                File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                                File file = new File(dir, "inventory.csv");
+                                FileOutputStream fos = new FileOutputStream(file);
+                                fos.write(data);
+                                fos.close();
+                                Toast.makeText(InventoryActivity.this, "Saved to Downloads/inventory.csv", Toast.LENGTH_LONG).show();
+                            } catch (IOException e) {
+                                inventoryError.setText("Error saving file");
+                                inventoryError.setVisibility(View.VISIBLE);
+                            }
+                        } else {
+                            inventoryError.setText(getString(R.string.inventory_error));
+                            inventoryError.setVisibility(View.VISIBLE);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        inventoryError.setText(getString(R.string.inventory_error));
+                        inventoryError.setVisibility(View.VISIBLE);
+                    }
+                });
     }
 
     private void startScan() {

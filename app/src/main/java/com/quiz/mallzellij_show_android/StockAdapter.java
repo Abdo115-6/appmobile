@@ -41,9 +41,9 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ArticleStock stock = stocks.get(position);
         holder.siteText.setText(stock.getSiteName());
-        holder.quantityText.setText(String.valueOf(stock.getQuantity()));
+        holder.quantityText.setText(String.format("%,d", stock.getQuantity()));
         if (stock.getQuantiteALouer() != null) {
-            holder.quantiteALouer.setText(String.valueOf(stock.getQuantiteALouer()));
+            holder.quantiteALouer.setText(String.format("%,d", stock.getQuantiteALouer()));
             holder.quantiteALouer.setVisibility(View.VISIBLE);
             holder.aLouerSite.setVisibility(View.VISIBLE);
         } else {

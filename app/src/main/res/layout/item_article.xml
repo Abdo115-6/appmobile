@@ -6,10 +6,11 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="6dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="1dp"
-    app:strokeWidth="0dp"
+    android:layout_marginVertical="5dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/card_stroke"
     app:cardBackgroundColor="@color/card_dark"
     android:clickable="true"
     android:focusable="true"
@@ -20,7 +21,15 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="16dp">
+
+        <!-- White accent bar -->
+        <View
+            android:layout_width="3dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="14dp"
+            android:background="@color/white" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -33,9 +42,13 @@
                 android:id="@+id/articleName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:textColor="@android:color/white"
+                android:textSize="15sp"
+                android:textColor="@color/white"
                 android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:lineSpacingMultiplier="1.15"
                 tools:text="Laptop Tile Premium" />
 
             <TextView
@@ -43,22 +56,23 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="13sp"
-                android:textColor="@color/primary"
+                android:textColor="@color/on_surface_variant"
                 android:layout_marginTop="4dp"
-                tools:text="À louer: 150 Units" />
+                android:fontFamily="sans-serif-medium"
+                tools:text="A louer: 150" />
 
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/viewStockBtn"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="38dp"
             android:text="@string/view_stock"
+            android:textSize="12sp"
             android:contentDescription="@string/desc_view_stock_button"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/TonalButton"
             android:minWidth="0dp"
-            android:paddingHorizontal="16dp"
-            app:cornerRadius="8dp" />
+            android:paddingHorizontal="18dp" />
 
     </LinearLayout>
 

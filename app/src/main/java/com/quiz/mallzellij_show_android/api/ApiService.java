@@ -14,6 +14,8 @@ import retrofit2.http.Query;
 
 import java.util.List;
 
+import okhttp3.ResponseBody;
+
 public interface ApiService {
     @POST("api/auth/login")
     Call<AuthResponse> login(@Body LoginRequest request);
@@ -32,4 +34,9 @@ public interface ApiService {
 
     @POST("api/inventory")
     Call<Void> submitInventory(@Body InventoryRequest request);
+
+    @GET("api/inventory/export")
+    Call<ResponseBody> downloadCsv(@Query("depot") String depot,
+                                   @Query("equipe") String equipe,
+                                   @Query("zone") String zone);
 }
