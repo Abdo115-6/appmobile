@@ -51,7 +51,7 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
             holder.aLouerSite.setVisibility(View.GONE);
         }
         if (stock.getPrix() != null) {
-            holder.prixValue.setText(String.valueOf(stock.getPrix()));
+            holder.prixValue.setText(String.format("%.2f", stock.getPrix().doubleValue()));
             holder.prixValue.setVisibility(View.VISIBLE);
             holder.prixLabel.setVisibility(View.VISIBLE);
         } else {

@@ -23,6 +23,9 @@ public class SprcList {
     @Column(name = "PLICRD_0")
     private String plicrd0;
 
+    @Column(name = "PLICRI2_0")
+    private String plicri20;
+
     @Column(name = "PRI_0")
     private BigDecimal pri0;
 
@@ -36,6 +39,8 @@ public class SprcList {
     public void setPli0(String pli0) { this.pli0 = pli0; }
     public String getPlicrd0() { return plicrd0; }
     public void setPlicrd0(String plicrd0) { this.plicrd0 = plicrd0; }
+    public String getPlicri20() { return plicri20; }
+    public void setPlicri20(String plicri20) { this.plicri20 = plicri20; }
     public BigDecimal getPri0() { return pri0; }
     public void setPri0(BigDecimal pri0) { this.pri0 = pri0; }
 }

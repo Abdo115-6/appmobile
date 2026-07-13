@@ -3,6 +3,7 @@ package com.quiz.mallzellij_show_android.api;
 import com.quiz.mallzellij_show_android.model.Article;
 import com.quiz.mallzellij_show_android.model.ArticleStock;
 import com.quiz.mallzellij_show_android.model.AuthResponse;
+import com.quiz.mallzellij_show_android.model.InventoryRequest;
 import com.quiz.mallzellij_show_android.model.LoginRequest;
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -28,4 +29,7 @@ public interface ApiService {
 
     @GET("api/articles/{articleId}/stocks")
     Call<List<ArticleStock>> getArticleStocks(@Path("articleId") Long articleId);
+
+    @POST("api/inventory")
+    Call<Void> submitInventory(@Body InventoryRequest request);
 }

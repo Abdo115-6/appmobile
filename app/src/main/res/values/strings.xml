@@ -84,6 +84,7 @@
     <string name="desc_inventory_zone">Zone dropdown</string>
 
     <string name="inventory_submitted">Inventory submitted</string>
+    <string name="inventory_error">Failed to submit inventory</string>
 
     <string name="inventory_categoris">Categoris</string>
 

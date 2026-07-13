@@ -1,5 +1,6 @@
 package com.quiz.mallzellij_show_android;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -9,6 +10,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -28,6 +30,15 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
 import com.quiz.mallzellij_show_android.UserSession;
+import com.quiz.mallzellij_show_android.api.ApiService;
+import com.quiz.mallzellij_show_android.api.RetrofitClient;
+import com.quiz.mallzellij_show_android.model.InventoryRequest;
+
+import java.math.BigDecimal;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class InventoryActivity extends AppCompatActivity {
 
@@ -157,26 +168,108 @@ public class InventoryActivity extends AppCompatActivity {
         clearErrors();
         if (!validateFields(article, pallet, carton, metreCarre)) return;
 
-        inventoryError.setVisibility(View.GONE);
+        showConfirmationDialog(equipe, depot, zone, article, pallet, carton, metreCarre);
+    }
 
-        String msg = "Équipe: " + equipe
-                + "\nDépôt: " + depot
-                + "\nZone: " + zone
-                + "\nArticle: " + article
-                + "\nPallet: " + pallet
-                + "\nCarton: " + carton
-                + "\nMetre Carré: " + metreCarre + " m²";
-        inventoryError.setText(msg);
-        inventoryError.setTextColor(getColor(R.color.on_surface));
-        inventoryError.setVisibility(View.VISIBLE);
+    private void showConfirmationDialog(String equipe, String depot, String zone,
+                                         String article, String pallet, String carton,
+                                         String metreCarre) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(40, 24, 40, 8);
 
-        Snackbar.make(findViewById(R.id.inventoryBtn), getString(R.string.inventory_submitted), Snackbar.LENGTH_SHORT).show();
+        String[][] rows = {
+                {"Équipe", equipe},
+                {"Dépôt", depot},
+                {"Zone", zone},
+                {"Article", article},
+                {"Pallet", pallet},
+                {"Carton", carton},
+                {"Mètre Carré", metreCarre + " m²"},
+                {"Opérateur", UserSession.getInstance().getEmail()}
+        };
 
-        inventoryArticle.setText(null);
-        inventoryPallet.setText(null);
-        inventoryCarton.setText(null);
-        inventoryMetreCarre.setText(null);
-        inventoryArticle.requestFocus();
+        for (String[] row : rows) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setPadding(0, 8, 0, 8);
+
+            TextView label = new TextView(this);
+            label.setText(row[0] + ":  ");
+            label.setTextSize(15);
+            label.setTextColor(getColor(R.color.on_surface));
+            label.setLayoutParams(new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            TextView value = new TextView(this);
+            value.setText(row[1]);
+            value.setTextSize(15);
+            value.setTextColor(getColor(R.color.on_surface));
+            value.setLayoutParams(new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f));
+
+            rowLayout.addView(label);
+            rowLayout.addView(value);
+
+            View divider = new View(this);
+            divider.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 1));
+            divider.setBackgroundColor(getColor(R.color.outline));
+
+            layout.addView(rowLayout);
+            layout.addView(divider);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Confirm Inventory")
+                .setView(layout)
+                .setCancelable(false)
+                .setPositiveButton("Confirm", (dialog, which) -> {
+                    InventoryRequest request = new InventoryRequest(
+                            "",
+                            depot,
+                            equipe,
+                            zone,
+                            article,
+                            pallet.isEmpty() ? BigDecimal.ZERO : new BigDecimal(pallet),
+                            carton.isEmpty() ? BigDecimal.ZERO : new BigDecimal(carton),
+                            metreCarre.isEmpty() ? BigDecimal.ZERO : new BigDecimal(metreCarre),
+                            UserSession.getInstance().getEmail()
+                    );
+                    sendInventory(request);
+                })
+                .setNegativeButton("Edit", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+    private void sendInventory(InventoryRequest request) {
+        setLoading(true);
+
+        ApiService api = RetrofitClient.getApiService();
+        api.submitInventory(request).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                setLoading(false);
+                if (response.isSuccessful()) {
+                    Snackbar.make(findViewById(R.id.inventoryBtn), getString(R.string.inventory_submitted), Snackbar.LENGTH_SHORT).show();
+                    inventoryArticle.setText(null);
+                    inventoryPallet.setText(null);
+                    inventoryCarton.setText(null);
+                    inventoryMetreCarre.setText(null);
+                    inventoryArticle.requestFocus();
+                } else {
+                    inventoryError.setText(getString(R.string.inventory_error));
+                    inventoryError.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                setLoading(false);
+                inventoryError.setText(getString(R.string.inventory_error));
+                inventoryError.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     private boolean validateFields(String article, String pallet, String carton, String metreCarre) {

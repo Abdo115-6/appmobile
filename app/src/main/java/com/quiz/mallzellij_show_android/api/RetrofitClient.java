@@ -10,8 +10,8 @@ public class RetrofitClient {
    
 //    private static final String BASE_URL = "http://172.29.144.1:8080/";
     // private static final String BASE_URL = "http://localhost:8080/";
-    // private static final String BASE_URL = "http://192.168.1.53:8080/";
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
+    private static final String BASE_URL = "http://192.168.1.53:8080/";
+    // private static final String BASE_URL = "http://10.0.2.2:8080/";
 
 
     //  private static final String BASE_URL = "http://localhost:8080/";

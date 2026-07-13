@@ -63,7 +63,7 @@ public class ArticleController {
         ItmMaster master = itmMasterRepository.findById(rowid).orElseThrow();
         BigDecimal total = itmMvtRepository.sumPhyall0ByItmref0AndSites(master.getItmref0(), SITES);
         Integer quantiteALouer = total != null ? total.intValue() : 0;
-        BigDecimal price = sprcListRepository.findPrice();
+        BigDecimal price = sprcListRepository.findPriceByArticle("T11", "SPL26-0001", master.getItmref0());
         BigDecimal prix = price != null ? price : BigDecimal.ZERO;
         return itmMvtRepository.findByItmref0AndSites(master.getItmref0(), SITES).stream()
                 .map(mvt -> new ArticleStockResponse(
