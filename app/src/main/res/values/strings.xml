@@ -89,4 +89,13 @@
     <string name="inventory_categoris">Categoris</string>
 
     <string name="a_louer">À louer</string>
+
+    <string name="devi_title">Devi</string>
+    <string name="devi_site_hint">Site</string>
+    <string name="devi_client_hint">Client</string>
+    <string name="devi_article_hint">Article</string>
+    <string name="devi_quantity_hint">Quantity</string>
+    <string name="devi_coefficient_label">Coefficient</string>
+    <string name="devi_cartons_label">Cartons</string>
+    <string name="devi_generate_btn">Generate</string>
 </resources>

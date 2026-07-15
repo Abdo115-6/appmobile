@@ -5,6 +5,10 @@
         android:icon="@android:drawable/ic_menu_sort_by_size"
         android:title="@string/articles_title" />
     <item
+        android:id="@+id/nav_devi"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:title="@string/devi_title" />
+    <item
         android:id="@+id/nav_inventory"
         android:icon="@android:drawable/ic_menu_edit"
         android:title="@string/inventory" />

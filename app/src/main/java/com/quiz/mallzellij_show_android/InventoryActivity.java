@@ -100,6 +100,9 @@ public class InventoryActivity extends AppCompatActivity {
             if (id == R.id.nav_articles) {
                 startActivity(new Intent(this, ArticlesActivity.class));
                 finish();
+            } else if (id == R.id.nav_devi) {
+                startActivity(new Intent(this, DevisActivity.class));
+                finish();
             } else if (id == R.id.nav_logout) {
                 UserSession.getInstance().logout();
                 startActivity(new Intent(this, LoginActivity.class));

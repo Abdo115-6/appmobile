@@ -3,6 +3,7 @@ import '../services/user_session.dart';
 import '../screens/login_screen.dart';
 import '../screens/articles_screen.dart';
 import '../screens/inventory_screen.dart';
+import '../screens/devis_screen.dart';
 
 class DrawerMenu extends StatelessWidget {
   final String currentRoute;
@@ -25,6 +26,14 @@ class DrawerMenu extends StatelessWidget {
             selected: currentRoute == '/articles',
             onTap: () {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ArticlesScreen()));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.description),
+            title: const Text('Devi'),
+            selected: currentRoute == '/devi',
+            onTap: () {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DevisScreen()));
             },
           ),
           if (session.isAdmin || session.isSuperuser)

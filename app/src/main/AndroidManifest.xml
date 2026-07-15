@@ -37,6 +37,9 @@
         <activity
             android:name=".InventoryActivity"
             android:exported="false" />
+        <activity
+            android:name=".DevisActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
