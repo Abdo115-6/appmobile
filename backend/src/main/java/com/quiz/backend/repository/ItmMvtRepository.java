@@ -14,7 +14,7 @@ import java.util.List;
 public interface ItmMvtRepository extends JpaRepository<ItmMvt, Long> {
     List<ItmMvt> findByItmref0(String itmref0);
 
-    @Query("SELECT m FROM ItmMvt m WHERE m.itmref0 = :itmref0 AND m.avcbasqty0 > 0 AND m.stofcy0 IN :sites")
+    @Query("SELECT m FROM ItmMvt m WHERE m.itmref0 = :itmref0 AND m.physto0 > 0 AND m.stofcy0 IN :sites")
     List<ItmMvt> findByItmref0AndSites(@Param("itmref0") String itmref0, @Param("sites") List<String> sites);
 
     List<ItmMvt> findBystofcy0(String stofcy0);
