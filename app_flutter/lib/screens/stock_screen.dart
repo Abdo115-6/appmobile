@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/article_stock.dart';
+import '../services/user_session.dart';
 
 class StockScreen extends StatefulWidget {
   final int articleId;
@@ -52,6 +53,10 @@ class _StockScreenState extends State<StockScreen> {
                         Text('À louer: ${s.quantiteALouer ?? 0}'),
                         if (s.prix != null)
                           Text('Price: ${s.prix!.toStringAsFixed(2)} MAD'),
+                        if ((UserSession().isSuperuser || UserSession().isAdmin) && s.prixPromo != null)
+                          Text('Prix Promo: ${s.prixPromo!.toStringAsFixed(2)} MAD'),
+                        if ((UserSession().isSuperuser || UserSession().isAdmin) && s.prixPrevendor != null)
+                          Text('Prix Prevendor: ${s.prixPrevendor!.toStringAsFixed(2)} MAD'),
                       ]),
                     ),
                   );

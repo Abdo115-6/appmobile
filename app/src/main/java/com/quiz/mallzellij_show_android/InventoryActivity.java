@@ -92,7 +92,7 @@ public class InventoryActivity extends AppCompatActivity {
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
         navView.setCheckedItem(R.id.nav_inventory);
-        if (!UserSession.getInstance().isAdmin()) {
+        if (!UserSession.getInstance().isAdmin() && !UserSession.getInstance().isSuperuser()) {
             navView.getMenu().findItem(R.id.nav_inventory).setVisible(false);
         }
         navView.setNavigationItemSelectedListener(item -> {

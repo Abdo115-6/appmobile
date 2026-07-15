@@ -27,7 +27,7 @@ class DrawerMenu extends StatelessWidget {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ArticlesScreen()));
             },
           ),
-          if (session.isAdmin)
+          if (session.isAdmin || session.isSuperuser)
             ListTile(
               leading: const Icon(Icons.edit_note),
               title: const Text('Inventory'),

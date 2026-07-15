@@ -64,14 +64,19 @@ public class ArticleController {
         BigDecimal total = itmMvtRepository.sumPhyall0ByItmref0AndSites(master.getItmref0(), SITES);
         Integer quantiteALouer = total != null ? total.intValue() : 0;
         BigDecimal price = sprcListRepository.findPriceByArticle("T11", "SPL26-0001", master.getItmref0());
-        BigDecimal prix = price != null ? price : BigDecimal.ZERO;
+        BigDecimal prixPromo = sprcListRepository.findPriceByArticle("T11", "SPL26-0002", master.getItmref0());
+        BigDecimal prixPrevendor = sprcListRepository.findPriceByArticle("T11", "SPL26-0003", master.getItmref0());
+        BigDecimal zero = BigDecimal.ZERO;
+        BigDecimal prix = price != null ? price : zero;
+        BigDecimal promo = prixPromo != null ? prixPromo : zero;
+        BigDecimal prev = prixPrevendor != null ? prixPrevendor : zero;
         return itmMvtRepository.findByItmref0AndSites(master.getItmref0(), SITES).stream()
                 .map(mvt -> new ArticleStockResponse(
                         0L,
                         mvt.getStofcy0(),
-                        mvt.getAvcbasqty0() != null ? mvt.getAvcbasqty0().intValue() : 0,
+                        mvt.getPhysto0() != null ? mvt.getPhysto0().intValue() : 0,
                         quantiteALouer,
-                        prix))
+                        prix, promo, prev))
                 .toList();
     }
 

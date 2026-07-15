@@ -16,6 +16,7 @@ class UserSession {
   String? get email => _email;
   String? get role => _role;
   bool get isAdmin => _role?.toLowerCase() == 'admin';
+  bool get isSuperuser => _role?.toLowerCase() == 'superuser';
 
   void login(AuthResponse r) {
     _id = r.id;

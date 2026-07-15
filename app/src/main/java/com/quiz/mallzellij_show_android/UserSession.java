@@ -36,6 +36,10 @@ public class UserSession {
         return "admin".equalsIgnoreCase(role);
     }
 
+    public boolean isSuperuser() {
+        return "superuser".equalsIgnoreCase(role);
+    }
+
     public String getRole() { return role; }
     public String getEmail() { return email; }
 }

@@ -3,6 +3,7 @@ package com.quiz.mallzellij_show_android;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -58,6 +59,19 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
             holder.prixValue.setVisibility(View.GONE);
             holder.prixLabel.setVisibility(View.GONE);
         }
+        boolean canSeeAll = UserSession.getInstance().isSuperuser() || UserSession.getInstance().isAdmin();
+        if (canSeeAll && stock.getPrixPromo() != null) {
+            holder.prixPromoRow.setVisibility(View.VISIBLE);
+            holder.prixPromoValue.setText(String.format("%.2f", stock.getPrixPromo()));
+        } else {
+            holder.prixPromoRow.setVisibility(View.GONE);
+        }
+        if (canSeeAll && stock.getPrixPrevendor() != null) {
+            holder.prixPrevendorRow.setVisibility(View.VISIBLE);
+            holder.prixPrevendorValue.setText(String.format("%.2f", stock.getPrixPrevendor()));
+        } else {
+            holder.prixPrevendorRow.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -67,6 +81,8 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView siteText, quantityText, aLouerSite, quantiteALouer, prixLabel, prixValue;
+        LinearLayout prixPromoRow, prixPrevendorRow;
+        TextView prixPromoValue, prixPrevendorValue;
 
         ViewHolder(View itemView) {
             super(itemView);
@@ -76,6 +92,10 @@ public class StockAdapter extends RecyclerView.Adapter<StockAdapter.ViewHolder> 
             quantiteALouer = itemView.findViewById(R.id.quantiteALouer);
             prixLabel = itemView.findViewById(R.id.prixLabel);
             prixValue = itemView.findViewById(R.id.prixValue);
+            prixPromoRow = itemView.findViewById(R.id.prixPromoRow);
+            prixPrevendorRow = itemView.findViewById(R.id.prixPrevendorRow);
+            prixPromoValue = itemView.findViewById(R.id.prixPromoValue);
+            prixPrevendorValue = itemView.findViewById(R.id.prixPrevendorValue);
         }
     }
 }

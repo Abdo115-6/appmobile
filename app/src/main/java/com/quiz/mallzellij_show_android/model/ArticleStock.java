@@ -8,10 +8,14 @@ public class ArticleStock {
     private Integer quantity;
     private Integer quantiteALouer;
     private Integer prix;
+    private BigDecimal prixPromo;
+    private BigDecimal prixPrevendor;
 
     public Long getSiteId() { return siteId; }
     public String getSiteName() { return siteName; }
     public Integer getQuantity() { return quantity; }
     public Integer getQuantiteALouer() { return quantiteALouer; }
     public Integer getPrix() { return prix; }
+    public BigDecimal getPrixPromo() { return prixPromo; }
+    public BigDecimal getPrixPrevendor() { return prixPrevendor; }
 }
