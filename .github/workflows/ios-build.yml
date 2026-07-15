@@ -1,0 +1,24 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app_flutter
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.x
+
+      - run: flutter pub get
+
+      - run: flutter build ios --release --no-codesign
