@@ -53,7 +53,7 @@ public class ArticleController {
                 .map(m -> {
                     BigDecimal sum = itmMvtRepository.sumPhyall0ByItmref0AndSites(m.getItmref0(), SITES);
                     Integer qty = sum != null ? sum.intValue() : 0;
-                    return ResponseEntity.ok(new ArticleResponse(m.getRowid(), m.getItmdes10(), qty, m.getItmref0(), m.getYnvcoll0()));
+                    return ResponseEntity.ok(new ArticleResponse(m.getRowid(), m.getItmdes10(), qty, m.getItmref0(), m.getPcustucoe0(), m.getSau0()));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -92,6 +92,6 @@ public class ArticleController {
 
     private ArticleResponse toResponse(ItmMaster m, Map<String, Integer> qtyMap) {
         Integer qty = qtyMap.getOrDefault(m.getItmref0(), 0);
-        return new ArticleResponse(m.getRowid(), m.getItmdes10(), qty, m.getItmref0(), m.getYnvcoll0());
+        return new ArticleResponse(m.getRowid(), m.getItmdes10(), qty, m.getItmref0(), m.getPcustucoe0(), m.getSau0());
     }
 }

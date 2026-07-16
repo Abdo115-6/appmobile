@@ -1,20 +1,24 @@
 package com.quiz.backend.dto;
 
+import java.math.BigDecimal;
+
 public class ArticleResponse {
     private Long id;
     private String nom;
     private Integer quantiteALouer;
     private String ref;
-    private Integer coefficient;
+    private BigDecimal coefficient;
+    private String sau;
 
     public ArticleResponse() {}
 
-    public ArticleResponse(Long id, String nom, Integer quantiteALouer, String ref, Integer coefficient) {
+    public ArticleResponse(Long id, String nom, Integer quantiteALouer, String ref, BigDecimal coefficient, String sau) {
         this.id = id;
         this.nom = nom;
         this.quantiteALouer = quantiteALouer;
         this.ref = ref;
         this.coefficient = coefficient;
+        this.sau = sau;
     }
 
     public Long getId() { return id; }
@@ -25,6 +29,8 @@ public class ArticleResponse {
     public void setQuantiteALouer(Integer quantiteALouer) { this.quantiteALouer = quantiteALouer; }
     public String getRef() { return ref; }
     public void setRef(String ref) { this.ref = ref; }
-    public Integer getCoefficient() { return coefficient; }
-    public void setCoefficient(Integer coefficient) { this.coefficient = coefficient; }
+    public BigDecimal getCoefficient() { return coefficient; }
+    public void setCoefficient(BigDecimal coefficient) { this.coefficient = coefficient; }
+    public String getSau() { return sau; }
+    public void setSau(String sau) { this.sau = sau; }
 }

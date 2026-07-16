@@ -82,6 +82,9 @@ public class ItmMaster {
     @Column(name = "XCOUT_0")
     private BigDecimal xcout0;
 
+    @Column(name = "PCUSTUCOE_0")
+    private BigDecimal pcustucoe0;
+
     @Column(name = "YFIN_0")
     private Integer yfin0;
 
@@ -159,6 +162,8 @@ public class ItmMaster {
     public void setYcoul0(String ycoul0) { this.ycoul0 = ycoul0; }
     public BigDecimal getXcout0() { return xcout0; }
     public void setXcout0(BigDecimal xcout0) { this.xcout0 = xcout0; }
+    public BigDecimal getPcustucoe0() { return pcustucoe0; }
+    public void setPcustucoe0(BigDecimal pcustucoe0) { this.pcustucoe0 = pcustucoe0; }
     public Integer getYfin0() { return yfin0; }
     public void setYfin0(Integer yfin0) { this.yfin0 = yfin0; }
     public String getYneance0() { return yneance0; }

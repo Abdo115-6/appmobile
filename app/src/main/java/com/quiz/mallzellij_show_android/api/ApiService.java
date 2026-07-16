@@ -3,6 +3,8 @@ package com.quiz.mallzellij_show_android.api;
 import com.quiz.mallzellij_show_android.model.Article;
 import com.quiz.mallzellij_show_android.model.ArticleStock;
 import com.quiz.mallzellij_show_android.model.AuthResponse;
+import com.quiz.mallzellij_show_android.model.DevisRequest;
+import com.quiz.mallzellij_show_android.model.BpCustomerResponse;
 import com.quiz.mallzellij_show_android.model.InventoryRequest;
 import com.quiz.mallzellij_show_android.model.LoginRequest;
 import retrofit2.Call;
@@ -40,4 +42,10 @@ public interface ApiService {
                                    @Query("equipe") String equipe,
                                    @Query("zone") String zone,
                                    @Query("format") String format);
+
+    @POST("api/devis")
+    Call<Void> submitDevis(@Body DevisRequest request);
+
+    @GET("api/devis/clients")
+    Call<List<BpCustomerResponse>> searchClients(@Query("q") String q);
 }

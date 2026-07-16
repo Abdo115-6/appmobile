@@ -98,4 +98,7 @@
     <string name="devi_coefficient_label">Coefficient</string>
     <string name="devi_cartons_label">Cartons</string>
     <string name="devi_generate_btn">Generate</string>
+    <string name="devi_review_title">Review Devi</string>
+    <string name="devi_edit_btn">Edit</string>
+    <string name="devi_confirm_btn">Confirm</string>
 </resources>

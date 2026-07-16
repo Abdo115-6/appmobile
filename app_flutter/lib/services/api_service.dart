@@ -7,6 +7,8 @@ import '../models/login_request.dart';
 import '../models/article.dart';
 import '../models/article_stock.dart';
 import '../models/inventory_request.dart';
+import '../models/devis_request.dart';
+import '../models/bp_customer.dart';
 
 class ApiService {
   // For emulator: 'http://10.0.2.2:8080/'
@@ -49,6 +51,19 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(request.toJson()),
     );
+  }
+
+  Future<void> submitDevis(DevisRequest request) async {
+    await http.post(
+      Uri.parse('${_baseUrl}api/devis'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(request.toJson()),
+    );
+  }
+
+  Future<List<BpCustomer>> searchClients(String q) async {
+    final res = await http.get(Uri.parse('${_baseUrl}api/devis/clients?q=$q'));
+    return (jsonDecode(res.body) as List).map((e) => BpCustomer.fromJson(e)).toList();
   }
 
   Future<File> downloadInventory(String? depot, String? equipe, String? zone, String format) async {
