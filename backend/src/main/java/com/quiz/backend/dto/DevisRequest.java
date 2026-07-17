@@ -13,6 +13,7 @@ public class DevisRequest {
     private BigDecimal coefficient;
     private Integer cartons;
     private String creusr0;
+    private String mobileKey;
 
     public String getSite() { return site; }
     public void setSite(String site) { this.site = site; }
@@ -34,4 +35,6 @@ public class DevisRequest {
     public void setCartons(Integer cartons) { this.cartons = cartons; }
     public String getCreusr0() { return creusr0; }
     public void setCreusr0(String creusr0) { this.creusr0 = creusr0; }
+    public String getMobileKey() { return mobileKey; }
+    public void setMobileKey(String mobileKey) { this.mobileKey = mobileKey; }
 }

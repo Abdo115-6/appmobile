@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface YdevisMobileRepository extends JpaRepository<YdevisMobile, Long> {
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(YMOBKEY_0, 4, 7) AS INT)) FROM YDEVISMOBILE WHERE YMOBKEY_0 LIKE 'MOB%'", nativeQuery = true)
+    Integer findMaxYmobkey0Num();
 }

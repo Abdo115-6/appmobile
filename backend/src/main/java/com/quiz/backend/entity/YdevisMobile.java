@@ -70,6 +70,9 @@ public class YdevisMobile {
     @Column(name = "UPDUSR_0", length = 20)
     private String updusr0;
 
+    @Column(name = "YMOBKEY_0", length = 20)
+    private String ymobkey0;
+
     public YdevisMobile() {}
 
     public Long getRowid() { return rowid; }
@@ -112,4 +115,6 @@ public class YdevisMobile {
     public void setCreusr0(String creusr0) { this.creusr0 = creusr0; }
     public String getUpdusr0() { return updusr0; }
     public void setUpdusr0(String updusr0) { this.updusr0 = updusr0; }
+    public String getYmobkey0() { return ymobkey0; }
+    public void setYmobkey0(String ymobkey0) { this.ymobkey0 = ymobkey0; }
 }

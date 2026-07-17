@@ -1,0 +1,364 @@
+#==============================================================================
+# YDEVISMOBILE.imp - Sage X3 v11 Import Method
+#
+# Imports mobile devis (quotes) from E/L CSV format into the YDEVISMOBILE table.
+#
+# CSV Format:
+#   E;;SITE;DOSSIER;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOB_KEY
+#   L;;ARTICLE_REF;UN;QTY;PRICE;MOB_KEY
+#
+# E/L linking: L records reference the preceding E record by the MOB_KEY field.
+#
+# Execution flow:
+#   1. Open CSV file
+#   2. Read each line
+#   3. Parse E records to set current header context + MOB_KEY
+#   4. Parse L records, match MOB_KEY to header context, create rows
+#   5. Validate mandatory fields
+#   6. Write to database
+#   7. Report errors
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Variable declarations
+#------------------------------------------------------------------------------
+Local Char LINE(500)                 ; Raw CSV line
+Local Char REC_TYPE(1)               ; E or L
+Local Integer NVAL                   ; Number of parsed fields
+Local Integer NB_ERR                 ; Error counter
+Local Integer NB_OK                  ; Success counter
+Local Integer NB_E                   ; Header counter
+Local Integer NB_L                   ; Line counter
+
+# Header context (carried by MOB_KEY)
+Local Char G_MOBKey(20)
+Local Char G_YSite(5)
+Local Char G_YBpcNum(20)
+Local Char G_YDossier(5)
+Local Char G_Date(8)
+Local Char G_Cur(3)
+
+# L record fields
+Local Char L_YItmRef(30)
+Local Char L_Unit(5)
+Local Decimal L_YQty(10,3)
+Local Decimal L_YPrice(10,3)
+
+# Also need a structure to track which MOB_KEYs we've seen in E records
+# (for validation that L references a valid E)
+Local Integer MOB_COUNT
+Local Char VALID_KEYS(100, 20)       ; Track up to 100 valid MOB_KEYs
+
+# Validation messages
+Local Char MSG(250)
+
+#==============================================================================
+# Subprogram: Parse a CSV line into an array of values
+# Handles quoted fields with embedded delimiters
+#==============================================================================
+Subprog PARSE_LINE(LINE, VALUES, COUNT)
+  Variable Integer COUNT
+  Variable Char LINE(), VALUES()
+
+  Local Integer I, K, IN_QUOTE
+  Local Char C(1)
+
+  COUNT = 0
+  I = 1
+  K = 1
+  IN_QUOTE = 0
+
+  While I <= len(LINE$)
+    C$ = mid$(LINE$, I, 1)
+    If C$ = Chr$(34)     # Double quote
+      If IN_QUOTE = 0
+        IN_QUOTE = 1
+      Else
+        If I < len(LINE$) and mid$(LINE$, I+1, 1) = Chr$(34)
+          VALUES$(K) = VALUES$(K) + Chr$(34)
+          I = I + 1
+        Else
+          IN_QUOTE = 0
+        Endif
+      Endif
+    Elsif C$ = ";" and IN_QUOTE = 0
+      K = K + 1
+      I = I + 1
+      Continue
+    Else
+      VALUES$(K) = VALUES$(K) + C$
+    Endif
+    I = I + 1
+  Endwhile
+
+  COUNT = K
+End
+
+#==============================================================================
+# Subprogram: Validate a field is not empty
+#==============================================================================
+Subprog VALIDATE_REQUIRED(VALUE, FIELD_NAME, MSG)
+  Variable Char VALUE(), FIELD_NAME(), MSG()
+  If VALUE$ = ""
+    MSG$ = "Field '" + FIELD_NAME$ + "' is required"
+    Return 1
+  Endif
+  Return 0
+End
+
+#==============================================================================
+# Subprogram: Check if a MOB_KEY is valid (seen in a preceding E record)
+#==============================================================================
+Subprog IS_VALID_MOBKEY(MOBKEY, MSG)
+  Variable Char MOBKEY(), MSG()
+
+  Local Integer J
+
+  If MOBKEY$ = ""
+    MSG$ = "MOB_KEY is empty"
+    Return 0
+  Endif
+
+  For J = 1 to MOB_COUNT
+    If VALID_KEYS$(J) = MOBKEY$
+      Return 1
+    Endif
+  Next J
+
+  MSG$ = "MOB_KEY '" + MOBKEY$ + "' does not match any preceding E record"
+  Return 0
+End
+
+#==============================================================================
+# Subprogram: Create YDEVISMOBILE record from current context + L fields
+#==============================================================================
+Subprog CREATE_DEVIS_RECORD
+  # Validate mandatory L fields
+  If VALIDATE_REQUIRED(L_YItmRef$, "ArticleRef", MSG$) <> 0 : Raise ERROR : Endif
+  If L_YQty <= 0
+    MSG$ = "Quantity must be > 0"
+    Raise ERROR
+  Endif
+
+  # Build default values
+  Local Char YID
+  YID$ = left$(uuid$, 10)
+
+  # Build YNUM from site + YID
+  Local Char YNUM
+  YNUM$ = trunc$(G_YSite$ + "-" + YID$, 20)
+
+  # Build YCLIENT from client code (auto)
+  Local Char YCLIENT
+  YCLIENT$ = trunc$(G_YBpcNum$, 15)
+
+  # Build YARTICLE from ref
+  Local Char YARTICLE
+  YARTICLE$ = trunc$(L_YItmRef$, 24)
+
+  # Set defaults
+  If L_Unit$ = "" : L_Unit$ = "UN" : Endif
+  If L_YPrice < 0 : L_YPrice = 0 : Endif
+
+  # Create the database record
+  [L]YDEVISMOBILE
+
+  [F]YID_0 = YID$
+  [F]YNUM_0 = YNUM$
+  [F]YSITE_0 = G_YSite$
+  [F]YBPCNUM_0 = G_YBpcNum$
+  [F]YCLIENT_0 = YCLIENT$
+  [F]YITMREF_0 = L_YItmRef$
+  [F]YITMDES_0 = L_YItmRef$       ; Fallback: use ref as description
+  [F]YARTICLE_0 = YARTICLE$
+  [F]YQTY_0 = L_YQty
+  [F]YPRICE_0 = L_YPrice
+  [F]YCOEFF_0 = 1
+  [F]YCARTON_0 = 1
+  [F]YMOBKEY_0 = G_MOBKey$
+  [F]CREUSR_0 = "MOBILE"
+  [F]CREDATTIM_0 = date$
+  [F]UPDDATTIM_0 = date$
+  [F]UPDTICK_0 = 0
+  [F]UPDUSR_0 = "MOBILE"
+  [F]AUUID_0 = uuid$
+
+  Write [L]YDEVISMOBILE
+  If fstat = 0
+    NB_OK = NB_OK + 1
+  Else
+    MSG$ = "Database write failed: " + fmsg$
+    Raise ERROR
+  Endif
+End
+
+#==============================================================================
+# Main import logic
+#==============================================================================
+$HEADER
+  # Initialize counters
+  NB_ERR = 0
+  NB_OK = 0
+  NB_E = 0
+  NB_L = 0
+  MOB_COUNT = 0
+
+  # Initialize header context
+  G_MOBKey$ = ""
+  G_YSite$ = ""
+  G_YBpcNum$ = ""
+  G_YDossier$ = ""
+  G_Date$ = ""
+  G_Cur$ = ""
+
+  # Clear valid keys array
+  Local Integer CLEAR_I
+  For CLEAR_I = 1 to 100 : VALID_KEYS$(CLEAR_I) = "" : Next CLEAR_I
+
+$BEFORE
+  # Open the import file
+  If imp_file$ = ""
+    MSG$ = "No import file specified"
+    Raise ERROR
+  Endif
+
+  Open(1, imp_file$, "r")
+  If fstat <> 0
+    MSG$ = "Cannot open file: " + imp_file$
+    Raise ERROR
+  Endif
+
+$READ
+  # Read one line from the CSV
+  Read(1, LINE$)
+  If fstat <> 0
+    Close(1)
+    Exit
+  Endif
+
+  # Skip empty/comment lines
+  If LINE$ = "" or mid$(LINE$, 1, 1) = "#" : Continue : Endif
+
+  # Parse the CSV line
+  Local Char VALS(20)
+  For NVAL = 1 to 20 : VALS$(NVAL) = "" : Next NVAL
+  Gosub PARSE_LINE LINE$, VALS$, NVAL
+
+  If NVAL < 2
+    MSG$ = "Line has insufficient fields"
+    NB_ERR = NB_ERR + 1
+    Error MSG$
+    Continue
+  Endif
+
+  REC_TYPE$ = VALS$(1)
+
+  #--------------------------------------------------------------------------
+  # Process E record (Header)
+  #--------------------------------------------------------------------------
+  If REC_TYPE$ = "E"
+    NB_E = NB_E + 1
+
+    # E: ;;SITE;DOSSIER;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOB_KEY
+    If NVAL < 11
+      MSG$ = "E record: insufficient fields (need 11, got " + str$(NVAL) + ")"
+      NB_ERR = NB_ERR + 1
+      Error MSG$
+      Continue
+    Endif
+
+    G_YSite$ = VALS$(3)
+    G_YDossier$ = VALS$(4)
+    G_YBpcNum$ = VALS$(6)
+    G_Date$ = VALS$(7)
+    G_Cur$ = VALS$(10)
+    G_MOBKey$ = VALS$(11)
+
+    # Validate E fields
+    If VALIDATE_REQUIRED(G_YSite$, "Site", MSG$) <> 0
+      NB_ERR = NB_ERR + 1
+      Error MSG$
+      Continue
+    Endif
+
+    If G_YSite$ <> "FBC" and G_YSite$ <> "FMD"
+      MSG$ = "Site must be FBC or FMD"
+      NB_ERR = NB_ERR + 1
+      Error MSG$
+      Continue
+    Endif
+
+    If VALIDATE_REQUIRED(G_YBpcNum$, "ClientCode", MSG$) <> 0
+      NB_ERR = NB_ERR + 1
+      Error MSG$
+      Continue
+    Endif
+
+    If VALIDATE_REQUIRED(G_MOBKey$, "MOB_KEY", MSG$) <> 0
+      NB_ERR = NB_ERR + 1
+      Error MSG$
+      Continue
+    Endif
+
+    # Register this MOB_KEY as valid for following L records
+    MOB_COUNT = MOB_COUNT + 1
+    If MOB_COUNT <= 100
+      VALID_KEYS$(MOB_COUNT) = G_MOBKey$
+    Endif
+
+    Continue
+  Endif
+
+  #--------------------------------------------------------------------------
+  # Process L record (Line)
+  #--------------------------------------------------------------------------
+  If REC_TYPE$ = "L"
+    NB_L = NB_L + 1
+
+    # L: ;;ARTICLE_REF;UN;QTY;PRICE;MOB_KEY
+    If NVAL < 7
+      MSG$ = "L record: insufficient fields (need 7, got " + str$(NVAL) + ")"
+      NB_ERR = NB_ERR + 1
+      Error MSG$
+      Continue
+    Endif
+
+    L_YItmRef$ = VALS$(3)
+    L_Unit$ = VALS$(4)
+    L_YQty = val(VALS$(5))
+    L_YPrice = val(VALS$(6))
+    Local Char L_MOBKey
+    L_MOBKey$ = VALS$(7)
+
+    # Validate MOB_KEY references a valid E record
+    If IS_VALID_MOBKEY(L_MOBKey$, MSG$) = 0
+      NB_ERR = NB_ERR + 1
+      Error MSG$
+      Continue
+    Endif
+
+    # Set header context from the matching MOB_KEY
+    G_MOBKey$ = L_MOBKey$
+
+    # Create the devis record
+    Gosub CREATE_DEVIS_RECORD
+
+    Continue
+  Endif
+
+  # Unknown record type
+  MSG$ = "Unknown record type: '" + REC_TYPE$ + "' (expected E or L)"
+  NB_ERR = NB_ERR + 1
+  Error MSG$
+
+$AFTER
+  Close(1)
+
+  # Report summary
+  MSG$ = "Import completed: " + str$(NB_E) + " headers, " + str$(NB_L) + " lines, "
+  MSG$ = MSG$ + str$(NB_OK) + " created, " + str$(NB_ERR) + " errors"
+  Info MSG$
+
+$ERROR
+  Close(1)
+  Error MSG$

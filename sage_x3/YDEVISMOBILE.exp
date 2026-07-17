@@ -1,0 +1,159 @@
+#==============================================================================
+# YDEVISMOBILE.exp - Sage X3 v11 Export Method
+#
+# Exports YDEVISMOBILE data to E/L CSV format.
+# Groups rows by YMOBKEY_0: one E record per mobile key, L records per article.
+#
+# Output CSV:
+#   E;;SITE;DOSSIER;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOB_KEY
+#   L;;ARTICLE_REF;UN;QTY;PRICE;MOB_KEY
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Variable declarations
+#------------------------------------------------------------------------------
+Local Char PREV_MOBKEY(20)           # Previous MOB_KEY to detect group changes
+Local Integer NB_E                   # Header count
+Local Integer NB_L                   # Line count
+
+#==============================================================================
+# Subprogram: Escape a CSV value (wrap in quotes if contains ; " or newline)
+#==============================================================================
+Subprog CSV_ESCAPE(VALUE, RESULT)
+  Variable Char VALUE(), RESULT()
+  If VALUE$ = ""
+    RESULT$ = ""
+  Elsif pos(VALUE$, ";") <> 0 or pos(VALUE$, Chr$(34)) <> 0 or pos(VALUE$, Chr$(10)) <> 0
+    RESULT$ = Chr$(34) + replace$(VALUE$, Chr$(34), Chr$(34)+Chr$(34)) + Chr$(34)
+  Else
+    RESULT$ = VALUE$
+  Endif
+End
+
+#==============================================================================
+# Subprogram: Write a CSV line to the output file
+#==============================================================================
+Subprog WRITE_LINE(FIELDS, COUNT)
+  Variable Char FIELDS()
+  Variable Integer COUNT
+
+  Local Char ESC_VAL(200)
+  Local Integer J
+  Local Char LINE(500)
+
+  LINE$ = ""
+  For J = 1 to COUNT
+    Gosub CSV_ESCAPE FIELDS$(J), ESC_VAL$
+    If J > 1
+      LINE$ = LINE$ + ";" + ESC_VAL$
+    Else
+      LINE$ = ESC_VAL$
+    Endif
+  Next J
+
+  Write(2, LINE$)
+End
+
+#==============================================================================
+# Subprogram: Write an E record from a YDEVISMOBILE row
+#==============================================================================
+Subprog WRITE_E_RECORD(REC)
+  Variable Record REC
+
+  Local Char FIELDS(11)
+  Local Char DT(8)
+
+  # Build date in YYYYMMDD format
+  If REC.CREDATTIM_0 <> null
+    DT$ = date$(REC.CREDATTIM_0, "YYYYMMDD")
+  Else
+    DT$ = date$("YYYYMMDD")
+  Endif
+
+  # E: ;;SITE;DOSSIER;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOB_KEY
+  FIELDS(1) = "E"
+  FIELDS(2) = ""
+  FIELDS(3) = REC.YSITE_0
+  FIELDS(4) = REC.YSITE_0        ; Dossier = site
+  FIELDS(5) = ""
+  FIELDS(6) = REC.YBPCNUM_0
+  FIELDS(7) = DT$
+  FIELDS(8) = ""
+  FIELDS(9) = REC.YSITE_0        ; Delivery site = site
+  FIELDS(10) = "MAD"
+  FIELDS(11) = REC.YMOBKEY_0
+
+  Gosub WRITE_LINE FIELDS, 11
+End
+
+#==============================================================================
+# Subprogram: Write an L record from a YDEVISMOBILE row
+#==============================================================================
+Subprog WRITE_L_RECORD(REC)
+  Variable Record REC
+
+  Local Char FIELDS(7)
+
+  # L: ;;ARTICLE_REF;UN;QTY;PRICE;MOB_KEY
+  FIELDS(1) = "L"
+  FIELDS(2) = ""
+  FIELDS(3) = REC.YITMREF_0
+  FIELDS(4) = "UN"
+  FIELDS(5) = str$(REC.YQTY_0)
+  FIELDS(6) = str$(REC.YPRICE_0)
+  FIELDS(7) = REC.YMOBKEY_0
+
+  Gosub WRITE_LINE FIELDS, 7
+End
+
+#==============================================================================
+# Main export logic
+#==============================================================================
+$HEADER
+  NB_E = 0
+  NB_L = 0
+  PREV_MOBKEY$ = ""
+
+$BEFORE
+  # Open output file
+  If out_file$ = ""
+    out_file$ = "YDEVISMOBILE_export.csv"
+  Endif
+
+  Open(2, out_file$, "w")
+  If fstat <> 0
+    MSG$ = "Cannot create output file: " + out_file$
+    Raise ERROR
+  Endif
+
+$READ
+  # Read all YDEVISMOBILE records sorted by YMOBKEY_0
+  [L]YDEVISMOBILE
+  Read [L]YDEVISMOBILE by YMOBKEY_0
+
+  While fstat = 0
+    Local Char CUR_MOBKEY
+    CUR_MOBKEY$ = [F]YMOBKEY_0
+
+    # On MOB_KEY change: write E record for the new group
+    If CUR_MOBKEY$ <> PREV_MOBKEY$
+      Gosub WRITE_E_RECORD [V]YDEVISMOBILE
+      NB_E = NB_E + 1
+      PREV_MOBKEY$ = CUR_MOBKEY$
+    Endif
+
+    # Write L record for each line
+    Gosub WRITE_L_RECORD [V]YDEVISMOBILE
+    NB_L = NB_L + 1
+
+    Read [L]YDEVISMOBILE
+  Endwhile
+
+$AFTER
+  Close(2)
+  MSG$ = "Export completed: " + str$(NB_E) + " headers, " + str$(NB_L) + " lines"
+  Info MSG$
+
+$ERROR
+  Close(2)
+  Error MSG$

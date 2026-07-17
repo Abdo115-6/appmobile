@@ -1,0 +1,48 @@
+#==============================================================================
+# YDEVISMOBILE Export Template Definition
+# Sage X3 v11 - Export template for mobile devis (quotes)
+# CSV delimiter: ";"
+# Record types: E = Header, L = Line
+#==============================================================================
+
+[EXP]
+DESCRIPTION = "YDEVISMOBILE Export"
+DELIMITER = ";"
+RECORD_TYPES = "E","L"
+INCLUDE_HEADER = No
+
+#------------------------------------------------------------------------------
+# E Record (Header)
+# One E per unique YMOBKEY_0
+#------------------------------------------------------------------------------
+[E]
+DESCRIPTION = "Header - Devis document"
+FIELDS = (
+  1: TYPE,         "E",                  fixed,      "Record type"
+  2:              (empty),               ignored,    "(empty)"
+  3: YSITE_0,      "Site",               char(5),    "Site code"
+  4: YDOSSIER_0,   "Dossier",            char(5),    "Dossier / SQN"
+  5:              (empty),               ignored,    "(empty)"
+  6: YBPCNUM_0,    "ClientCode",         char(20),   "Client code"
+  7: YDATE_0,      "Date",               char(8),    "Date (YYYYMMDD)"
+  8:              (empty),               ignored,    "(empty)"
+  9: YSITEDEV_0,   "SiteLiv",            char(5),    "Delivery site"
+  10: YCUR_0,       "Currency",           char(3),    "Currency (MAD)"
+  11: YMOBKEY_0,    "MobileKey",          char(20),   "Mobile key"
+)
+
+#------------------------------------------------------------------------------
+# L Record (Line)
+# One L per article row, linked to E by YMOBKEY_0
+#------------------------------------------------------------------------------
+[L]
+DESCRIPTION = "Line - Devis article"
+FIELDS = (
+  1: TYPE,         "L",                  fixed,      "Record type"
+  2:              (empty),               ignored,    "(empty)"
+  3: YITMREF_0,    "ArticleRef",         char(30),   "Article reference"
+  4: YUNIT_0,      "Unit",               char(5),    "Unit (UN)"
+  5: YQTY_0,       "Quantity",           decimal,    "Quantity"
+  6: YPRICE_0,     "Price",              decimal,    "Unit price"
+  7: YMOBKEY_0,    "MobileKey",          char(20),   "Mobile key (reference to E)"
+)

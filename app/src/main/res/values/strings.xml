@@ -101,4 +101,8 @@
     <string name="devi_review_title">Review Devi</string>
     <string name="devi_edit_btn">Edit</string>
     <string name="devi_confirm_btn">Confirm</string>
+    <string name="devi_csv_btn">Download CSV</string>
+    <string name="devi_add_article_btn">Add Article</string>
+    <string name="devi_remove_btn">Remove</string>
+    <string name="devi_no_articles">No articles added yet</string>
 </resources>

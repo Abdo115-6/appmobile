@@ -1,0 +1,26 @@
+#==============================================================================
+# YDEVISMOBILE - Sample CSV (E/L format)
+# Delimiter: ;
+# Record types: E = Header (En-tete), L = Line (Ligne)
+#
+# This file contains 2 devis documents:
+#   MOB0000001 has 2 articles (Client ACME)
+#   MOB0000002 has 1 article  (Client GLOBEX)
+#==============================================================================
+
+# --- Devis 1: Client ACME, 2 articles, mobile key MOB0000001 ---
+E;;FMD;FMD;;ACME01;20260716;;FMD;MAD;MOB0000001
+L;;REF001;UN;100;25.50;MOB0000001
+L;;REF002;UN;50;15.00;MOB0000001
+
+# --- Devis 2: Client GLOBEX, 1 article, mobile key MOB0000002 ---
+E;;FBC;FBC;;GLOBEX01;20260716;;FBC;MAD;MOB0000002
+L;;REF003;UN;200;30.00;MOB0000002
+
+==============================================================================
+Field reference:
+==============================================================================
+E: ;TYPE;;SITE;DOSSIER;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOB_KEY
+L: ;TYPE;;ARTICLE_REF;UNIT;QTY;PRICE;MOB_KEY
+==============================================================================
+MOB_KEY links L records to their parent E record.

@@ -1,11 +1,22 @@
 package com.quiz.mallzellij_show_android;
 
+import android.content.ContentValues;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
+
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -13,6 +24,9 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import okhttp3.ResponseBody;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -31,10 +45,15 @@ import com.quiz.mallzellij_show_android.model.Article;
 import com.quiz.mallzellij_show_android.model.BpCustomerResponse;
 import com.quiz.mallzellij_show_android.model.DevisRequest;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import android.widget.TableRow;
+import android.widget.TableLayout;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -42,33 +61,71 @@ import retrofit2.Response;
 
 public class DevisActivity extends AppCompatActivity {
 
+    private static class ArticleEntry {
+        Article article;
+        BigDecimal quantity;
+        BigDecimal price;
+        int cartons;
+        BigDecimal coefficient;
+        BigDecimal adjustedQty;
+
+        ArticleEntry(Article article, BigDecimal quantity, BigDecimal price,
+                     int cartons, BigDecimal coefficient, BigDecimal adjustedQty) {
+            this.article = article;
+            this.quantity = quantity;
+            this.price = price;
+            this.cartons = cartons;
+            this.coefficient = coefficient;
+            this.adjustedQty = adjustedQty;
+        }
+    }
+
     private AutoCompleteTextView deviSite, deviClient, deviArticle;
     private TextInputEditText deviQuantity, deviPrice;
-    private TextView deviCoefficient, deviCartons, deviAdjustedQty, deviError;
+    private TextView deviError;
     private ProgressBar deviProgress;
-    private MaterialButton deviGenerateBtn;
+    private MaterialButton deviGenerateBtn, deviAddArticleBtn;
 
-    private LinearLayout deviFormContainer, deviReviewContainer;
-    private TextView deviReviewSite, deviReviewClient, deviReviewArticle,
-            deviReviewQty, deviReviewPrice, deviReviewCoeff, deviReviewCartons;
-    private MaterialButton deviEditBtn, deviConfirmBtn;
+    private LinearLayout deviFormContainer, deviReviewContainer, deviArticleListContainer;
+    private TextView deviArticleListEmpty;
+    private TextView deviReviewSite, deviReviewClient;
+    private TableLayout deviReviewArticleTable;
+    private MaterialButton deviEditBtn, deviCsvBtn, deviConfirmBtn;
 
     private Article selectedArticle;
     private BpCustomerResponse selectedClient;
     private List<BpCustomerResponse> clientList = new ArrayList<>();
     private List<Article> articleList = new ArrayList<>();
-
-    private DevisRequest pendingRequest;
+    private List<ArticleEntry> articleEntries = new ArrayList<>();
 
     private static final List<String> SITES = Arrays.asList("FBC", "FMD");
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
     private Runnable articleSearchRunnable;
 
+    private String pendingCsvContent;
+    private String pendingCsvFileName;
+
     private final ActivityResultLauncher<ScanOptions> barcodeLauncher =
             registerForActivityResult(new ScanContract(), result -> {
                 if (result.getContents() != null) {
                     fetchArticleByBarcode(result.getContents());
+                }
+            });
+
+    private final ActivityResultLauncher<String> storagePermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                if (granted) {
+                    if (pendingCsvContent != null) {
+                        saveCsvToFile(pendingCsvFileName, pendingCsvContent);
+                        pendingCsvContent = null;
+                        pendingCsvFileName = null;
+                    } else {
+                        saveCsvToDownloads();
+                    }
+                } else {
+                    deviError.setText("Storage permission denied");
+                    deviError.setVisibility(View.VISIBLE);
                 }
             });
 
@@ -83,6 +140,14 @@ public class DevisActivity extends AppCompatActivity {
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.nav_open, R.string.nav_close);
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
+        toolbar.inflateMenu(R.menu.toolbar_devi_menu);
+        toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.action_export_csv) {
+                downloadAllCsv();
+                return true;
+            }
+            return false;
+        });
         navView.setCheckedItem(R.id.nav_devi);
         boolean isAdmin = UserSession.getInstance().isAdmin() || UserSession.getInstance().isSuperuser();
         if (!isAdmin) {
@@ -112,23 +177,21 @@ public class DevisActivity extends AppCompatActivity {
         deviArticle = findViewById(R.id.deviArticle);
         deviQuantity = findViewById(R.id.deviQuantity);
         deviPrice = findViewById(R.id.deviPrice);
-        deviCoefficient = findViewById(R.id.deviCoefficient);
-        deviCartons = findViewById(R.id.deviCartons);
-        deviAdjustedQty = findViewById(R.id.deviAdjustedQty);
         deviProgress = findViewById(R.id.deviProgress);
         deviError = findViewById(R.id.deviError);
         deviGenerateBtn = findViewById(R.id.deviGenerateBtn);
+
+        deviAddArticleBtn = findViewById(R.id.deviAddArticleBtn);
+        deviArticleListContainer = findViewById(R.id.deviArticleListContainer);
+        deviArticleListEmpty = findViewById(R.id.deviArticleListEmpty);
 
         deviFormContainer = findViewById(R.id.deviFormContainer);
         deviReviewContainer = findViewById(R.id.deviReviewContainer);
         deviReviewSite = findViewById(R.id.deviReviewSite);
         deviReviewClient = findViewById(R.id.deviReviewClient);
-        deviReviewArticle = findViewById(R.id.deviReviewArticle);
-        deviReviewQty = findViewById(R.id.deviReviewQty);
-        deviReviewPrice = findViewById(R.id.deviReviewPrice);
-        deviReviewCoeff = findViewById(R.id.deviReviewCoeff);
-        deviReviewCartons = findViewById(R.id.deviReviewCartons);
+        deviReviewArticleTable = findViewById(R.id.deviReviewArticleTable);
         deviEditBtn = findViewById(R.id.deviEditBtn);
+        deviCsvBtn = findViewById(R.id.deviCsvBtn);
         deviConfirmBtn = findViewById(R.id.deviConfirmBtn);
 
         ImageButton scanBtn = findViewById(R.id.scanArticleBtn);
@@ -148,11 +211,8 @@ public class DevisActivity extends AppCompatActivity {
 
         deviArticle.setOnItemClickListener((parent, view, position, id) -> {
             selectedArticle = articleList.get(position);
-            deviCoefficient.setText(selectedArticle.getCoefficient() != null
-                    ? selectedArticle.getCoefficient().stripTrailingZeros().toPlainString() : "-");
             String sau = selectedArticle.getSau() != null ? " (" + selectedArticle.getSau() + ")" : "";
             deviArticle.setText(selectedArticle.getNom() + sau);
-            calculateCartons();
         });
 
         scanBtn.setOnClickListener(v -> {
@@ -186,16 +246,10 @@ public class DevisActivity extends AppCompatActivity {
             @Override public void afterTextChanged(Editable s) {}
         });
 
-        deviQuantity.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                calculateCartons();
-            }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-
         deviGenerateBtn.setOnClickListener(v -> generateDevi());
+        deviAddArticleBtn.setOnClickListener(v -> addArticle());
         deviEditBtn.setOnClickListener(v -> editDevi());
+        deviCsvBtn.setOnClickListener(v -> downloadCsv());
         deviConfirmBtn.setOnClickListener(v -> confirmDevi());
     }
 
@@ -258,11 +312,8 @@ public class DevisActivity extends AppCompatActivity {
             public void onResponse(Call<Article> call, Response<Article> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     selectedArticle = response.body();
-                    deviCoefficient.setText(selectedArticle.getCoefficient() != null
-                            ? selectedArticle.getCoefficient().stripTrailingZeros().toPlainString() : "-");
                     String sau = selectedArticle.getSau() != null ? " (" + selectedArticle.getSau() + ")" : "";
                     deviArticle.setText(selectedArticle.getNom() + sau);
-                    calculateCartons();
                 }
             }
 
@@ -274,61 +325,114 @@ public class DevisActivity extends AppCompatActivity {
         });
     }
 
-    private void calculateCartons() {
+    private void addArticle() {
         String qtyStr = deviQuantity.getText().toString();
-        if (selectedArticle == null || selectedArticle.getCoefficient() == null
-                || selectedArticle.getCoefficient().compareTo(BigDecimal.ZERO) == 0 || qtyStr.isEmpty()) {
-            deviCartons.setText("0");
-            deviAdjustedQty.setText("0");
+        if (selectedArticle == null || qtyStr.isEmpty()) {
+            deviError.setText("Select an article and enter quantity");
+            deviError.setVisibility(View.VISIBLE);
             return;
         }
+
         try {
             BigDecimal qty = new BigDecimal(qtyStr);
-            BigDecimal coeff = selectedArticle.getCoefficient();
+            BigDecimal coeff = selectedArticle.getCoefficient() != null ? selectedArticle.getCoefficient() : BigDecimal.ONE;
             int cartons = (int) Math.ceil(qty.divide(coeff, 10, BigDecimal.ROUND_HALF_UP).doubleValue());
             BigDecimal adjustedQty = coeff.multiply(BigDecimal.valueOf(cartons));
-            deviCartons.setText(String.valueOf(cartons));
-            deviAdjustedQty.setText(adjustedQty.stripTrailingZeros().toPlainString());
-        } catch (NumberFormatException e) {
-            deviCartons.setText("0");
-            deviAdjustedQty.setText("0");
+
+            ArticleEntry entry = new ArticleEntry(selectedArticle, adjustedQty,
+                    parsePrice(deviPrice.getText().toString()), cartons, coeff, adjustedQty);
+            articleEntries.add(entry);
+
+            selectedArticle = null;
+            deviArticle.setText("");
+            deviQuantity.setText("");
+            deviPrice.setText("");
+
+            refreshArticleList();
+            deviError.setVisibility(View.GONE);
+        } catch (Exception e) {
+            deviError.setText("Invalid input: " + e.getMessage());
+            deviError.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void removeArticle(int index) {
+        if (index >= 0 && index < articleEntries.size()) {
+            articleEntries.remove(index);
+            refreshArticleList();
+        }
+    }
+
+    private void refreshArticleList() {
+        deviArticleListContainer.removeAllViews();
+        if (articleEntries.isEmpty()) {
+            deviArticleListContainer.addView(deviArticleListEmpty);
+            return;
+        }
+        for (int i = 0; i < articleEntries.size(); i++) {
+            ArticleEntry entry = articleEntries.get(i);
+            View row = getLayoutInflater().inflate(R.layout.item_article_entry, null);
+            TextView info = row.findViewById(R.id.articleEntryInfo);
+            MaterialButton removeBtn = row.findViewById(R.id.articleEntryRemove);
+
+            info.setText((i + 1) + ". " + entry.article.getNom()
+                    + "  |  Qty: " + entry.quantity.stripTrailingZeros().toPlainString()
+                    + "  |  Price: " + entry.price.stripTrailingZeros().toPlainString());
+
+            int idx = i;
+            removeBtn.setOnClickListener(v -> removeArticle(idx));
+            deviArticleListContainer.addView(row);
         }
     }
 
     private void generateDevi() {
         String site = deviSite.getText().toString().trim();
-        String qtyStr = deviQuantity.getText().toString();
-
-        if (site.isEmpty() || selectedClient == null || selectedArticle == null || qtyStr.isEmpty()) {
-            deviError.setText("Please fill all fields");
+        if (site.isEmpty() || selectedClient == null || articleEntries.isEmpty()) {
+            deviError.setText("Select site, client, and add at least one article");
             deviError.setVisibility(View.VISIBLE);
             return;
         }
 
-        BigDecimal inputQty = new BigDecimal(qtyStr);
-        BigDecimal coeff = selectedArticle.getCoefficient() != null ? selectedArticle.getCoefficient() : BigDecimal.ONE;
-        int cartons = (int) Math.ceil(inputQty.divide(coeff, 10, BigDecimal.ROUND_HALF_UP).doubleValue());
-        BigDecimal adjustedQty = coeff.multiply(BigDecimal.valueOf(cartons));
-
-        pendingRequest = new DevisRequest();
-        pendingRequest.setSite(site);
-        pendingRequest.setClientCode(selectedClient.getCode());
-        pendingRequest.setClientName(selectedClient.getName());
-        pendingRequest.setArticleRef(selectedArticle.getRef());
-        pendingRequest.setArticleName(selectedArticle.getNom());
-        pendingRequest.setQuantity(adjustedQty);
-        pendingRequest.setPrice(parsePrice(deviPrice.getText().toString()));
-        pendingRequest.setCoefficient(coeff);
-        pendingRequest.setCartons(cartons);
-        pendingRequest.setCreusr0(UserSession.getInstance().getEmail());
-
         deviReviewSite.setText(site);
         deviReviewClient.setText(selectedClient.getCode() + " - " + selectedClient.getName());
-        deviReviewArticle.setText(selectedArticle.getRef() + " - " + selectedArticle.getNom());
-        deviReviewQty.setText(adjustedQty.stripTrailingZeros().toPlainString());
-        deviReviewPrice.setText(parsePrice(deviPrice.getText().toString()).stripTrailingZeros().toPlainString());
-        deviReviewCoeff.setText(coeff.stripTrailingZeros().toPlainString());
-        deviReviewCartons.setText(String.valueOf(cartons));
+
+        deviReviewArticleTable.removeAllViews();
+        TableRow header = new TableRow(this);
+        header.setPadding(0, 0, 0, 8);
+        String[] headers = {"#", "Article", "Qty", "Price", "Coeff", "Cartons"};
+        int[] weights = {1, 3, 1, 1, 1, 1};
+        for (int i = 0; i < headers.length; i++) {
+            TextView tv = new TextView(this);
+            tv.setText(headers[i]);
+            tv.setTextColor(getResources().getColor(R.color.on_surface_variant, getTheme()));
+            tv.setTextSize(11);
+            tv.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, weights[i]));
+            header.addView(tv);
+        }
+        deviReviewArticleTable.addView(header);
+
+        for (int i = 0; i < articleEntries.size(); i++) {
+            ArticleEntry entry = articleEntries.get(i);
+            TableRow row = new TableRow(this);
+            row.setPadding(0, 6, 0, 6);
+            String[] vals = {
+                    String.valueOf(i + 1),
+                    entry.article.getNom(),
+                    entry.quantity.stripTrailingZeros().toPlainString(),
+                    entry.price.stripTrailingZeros().toPlainString(),
+                    entry.coefficient.stripTrailingZeros().toPlainString(),
+                    String.valueOf(entry.cartons)
+            };
+            for (int j = 0; j < vals.length; j++) {
+                TextView tv = new TextView(this);
+                tv.setText(vals[j]);
+                tv.setTextColor(getResources().getColor(R.color.white, getTheme()));
+                tv.setTextSize(13);
+                tv.setLayoutParams(new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, weights[j]));
+                row.addView(tv);
+            }
+            deviReviewArticleTable.addView(row);
+        }
 
         deviError.setVisibility(View.GONE);
         deviFormContainer.setVisibility(View.GONE);
@@ -336,39 +440,70 @@ public class DevisActivity extends AppCompatActivity {
     }
 
     private void confirmDevi() {
-        if (pendingRequest == null) return;
+        if (articleEntries.isEmpty()) return;
 
         deviProgress.setVisibility(View.VISIBLE);
         deviConfirmBtn.setEnabled(false);
         deviEditBtn.setEnabled(false);
         deviError.setVisibility(View.GONE);
 
-        RetrofitClient.getApiService().submitDevis(pendingRequest).enqueue(new Callback<Void>() {
-            @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
-                deviProgress.setVisibility(View.GONE);
-                deviConfirmBtn.setEnabled(true);
-                deviEditBtn.setEnabled(true);
-                if (response.isSuccessful()) {
-                    deviError.setText("Devi saved successfully!");
-                    deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
-                    deviReviewContainer.setVisibility(View.GONE);
-                    deviFormContainer.setVisibility(View.VISIBLE);
-                    deviError.setVisibility(View.VISIBLE);
-                    clearForm();
-                } else {
-                    deviError.setText("Failed to save devis");
-                    deviError.setTextColor(getResources().getColor(android.R.color.holo_red_light, getTheme()));
-                    deviError.setVisibility(View.VISIBLE);
-                }
-            }
+        String site = deviSite.getText().toString().trim();
+        String email = UserSession.getInstance().getEmail();
+        // One mobile key per devis (shared across all articles)
+        String devisMobileKey = "MOB" + String.format("%07d", System.currentTimeMillis() % 10000000);
+        int[] submitted = {0};
+        int[] total = {articleEntries.size()};
+        int[] errors = {0};
 
-            @Override
-            public void onFailure(Call<Void> call, Throwable t) {
-                deviProgress.setVisibility(View.GONE);
-                deviConfirmBtn.setEnabled(true);
-                deviEditBtn.setEnabled(true);
-                deviError.setText("Connection error: " + t.getMessage());
+        for (ArticleEntry entry : articleEntries) {
+            DevisRequest request = new DevisRequest();
+            request.setSite(site);
+            request.setClientCode(selectedClient.getCode());
+            request.setClientName(selectedClient.getName());
+            request.setArticleRef(entry.article.getRef());
+            request.setArticleName(entry.article.getNom());
+            request.setQuantity(entry.quantity);
+            request.setPrice(entry.price);
+            request.setCoefficient(entry.coefficient);
+            request.setCartons(entry.cartons);
+            request.setCreusr0(email);
+            request.setMobileKey(devisMobileKey);
+
+            RetrofitClient.getApiService().submitDevis(request).enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+                    submitted[0]++;
+                    if (!response.isSuccessful()) {
+                        errors[0]++;
+                    }
+                    checkDone(submitted[0], total[0], errors[0]);
+                }
+
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+                    submitted[0]++;
+                    errors[0]++;
+                    checkDone(submitted[0], total[0], errors[0]);
+                }
+            });
+        }
+    }
+
+    private void checkDone(int submitted, int total, int errors) {
+        if (submitted < total) return;
+        runOnUiThread(() -> {
+            deviProgress.setVisibility(View.GONE);
+            deviConfirmBtn.setEnabled(true);
+            deviEditBtn.setEnabled(true);
+            if (errors == 0) {
+                deviError.setText("Devi saved successfully! (" + total + " articles)");
+                deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+                deviReviewContainer.setVisibility(View.GONE);
+                deviFormContainer.setVisibility(View.VISIBLE);
+                deviError.setVisibility(View.VISIBLE);
+                clearForm();
+            } else {
+                deviError.setText(errors + " of " + total + " articles failed");
                 deviError.setTextColor(getResources().getColor(android.R.color.holo_red_light, getTheme()));
                 deviError.setVisibility(View.VISIBLE);
             }
@@ -379,6 +514,188 @@ public class DevisActivity extends AppCompatActivity {
         deviReviewContainer.setVisibility(View.GONE);
         deviFormContainer.setVisibility(View.VISIBLE);
         deviError.setVisibility(View.GONE);
+    }
+
+    private void downloadCsv() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveCsvToDownloads();
+        } else if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED) {
+            saveCsvToDownloads();
+        } else {
+            storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+    }
+
+    private void saveCsvToDownloads() {
+        String site = deviReviewSite.getText().toString();
+        String clientCode = selectedClient != null ? selectedClient.getCode() : "";
+        // Generate one mobile key for this review CSV
+        String mobileKey = "MOB" + String.format("%07d", System.currentTimeMillis() % 10000000);
+        String today = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(new java.util.Date());
+
+        StringBuilder csv = new StringBuilder();
+        // E: ;TYPE;;SITE;SQN;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOBILE_KEY
+        csv.append("E;;")
+           .append(escapeCsv(site)).append(";")
+           .append("SQN").append(";;")  // SQN = fixed
+           .append(escapeCsv(clientCode)).append(";")
+           .append(today).append(";;")
+           .append(escapeCsv(site)).append(";")
+           .append("MAD;")
+           .append(mobileKey).append("\n");
+        for (ArticleEntry entry : articleEntries) {
+            // L: ;TYPE;;ARTICLE_REF;UN;QTY;PRICE;MOBILE_KEY
+            csv.append("L;;")
+               .append(escapeCsv(entry.article.getRef())).append(";")
+               .append("UN;")
+               .append(entry.quantity.stripTrailingZeros().toPlainString()).append(";")
+               .append(entry.price.stripTrailingZeros().toPlainString()).append(";")
+               .append(mobileKey).append("\n");
+        }
+
+        String fileName = "devi_" + System.currentTimeMillis() + ".csv";
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+            values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+            values.put(MediaStore.Downloads.IS_PENDING, 1);
+            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) {
+                deviError.setText("Failed to create file");
+                deviError.setVisibility(View.VISIBLE);
+                return;
+            }
+            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                if (out != null) {
+                    out.write(csv.toString().getBytes());
+                }
+                values.clear();
+                values.put(MediaStore.Downloads.IS_PENDING, 0);
+                getContentResolver().update(uri, values, null, null);
+                deviError.setText("CSV saved to Downloads");
+                deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "CSV saved to Downloads", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                deviError.setText("Failed to save CSV: " + e.getMessage());
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "Failed to save CSV: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                getContentResolver().delete(uri, null, null);
+            }
+        } else {
+            java.io.File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            java.io.File csvFile = new java.io.File(downloadsDir, fileName);
+            try (java.io.FileWriter writer = new java.io.FileWriter(csvFile)) {
+                writer.write(csv.toString());
+                deviError.setText("CSV saved to Downloads");
+                deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "CSV saved to Downloads", Toast.LENGTH_SHORT).show();
+                Uri fileUri = Uri.fromFile(csvFile);
+                Intent scanFile = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, fileUri);
+                sendBroadcast(scanFile);
+            } catch (IOException e) {
+                deviError.setText("Failed to save CSV: " + e.getMessage());
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "Failed to save CSV: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void downloadAllCsv() {
+        deviProgress.setVisibility(View.VISIBLE);
+        deviError.setVisibility(View.GONE);
+
+        RetrofitClient.getApiService().exportDevisCsv().enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                deviProgress.setVisibility(View.GONE);
+                if (!response.isSuccessful() || response.body() == null) {
+                    deviError.setText("Failed to export data");
+                    deviError.setVisibility(View.VISIBLE);
+                    Toast.makeText(DevisActivity.this, "Failed to export data", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                try {
+                    String csv = response.body().string();
+                    saveExportedCsv(csv);
+                } catch (IOException e) {
+                    deviError.setText("Export error: " + e.getMessage());
+                    deviError.setVisibility(View.VISIBLE);
+                    Toast.makeText(DevisActivity.this, "Export error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                deviProgress.setVisibility(View.GONE);
+                deviError.setText("Connection error: " + t.getMessage());
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void saveExportedCsv(String csv) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveCsvToFile("devis_export.csv", csv);
+        } else if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED) {
+            saveCsvToFile("devis_export.csv", csv);
+        } else {
+            pendingCsvContent = csv;
+            pendingCsvFileName = "devis_export.csv";
+            storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+    }
+
+    private void saveCsvToFile(String fileName, String csv) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+            values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+            values.put(MediaStore.Downloads.IS_PENDING, 1);
+            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) {
+                deviError.setText("Failed to create file");
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "Failed to create file", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                if (out != null) {
+                    out.write(csv.getBytes());
+                }
+                values.clear();
+                values.put(MediaStore.Downloads.IS_PENDING, 0);
+                getContentResolver().update(uri, values, null, null);
+                deviError.setText("CSV saved to Downloads");
+                deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "CSV saved to Downloads", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                deviError.setText("Failed to save: " + e.getMessage());
+                deviError.setVisibility(View.VISIBLE);
+                Toast.makeText(DevisActivity.this, "Failed to save: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                if (uri != null) getContentResolver().delete(uri, null, null);
+            }
+        } else {
+            java.io.File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            java.io.File csvFile = new java.io.File(downloadsDir, fileName);
+            try (java.io.FileWriter writer = new java.io.FileWriter(csvFile)) {
+                writer.write(csv);
+        deviError.setText("CSV saved to Downloads");
+        deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+        deviError.setVisibility(View.VISIBLE);
+        Toast.makeText(DevisActivity.this, "CSV saved to Downloads", Toast.LENGTH_SHORT).show();
+        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(csvFile)));
+            } catch (IOException e) {
+                deviError.setText("Failed to save: " + e.getMessage());
+                deviError.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private BigDecimal parsePrice(String text) {
@@ -395,12 +712,19 @@ public class DevisActivity extends AppCompatActivity {
         deviArticle.setText("");
         deviQuantity.setText("");
         deviPrice.setText("");
-        deviCoefficient.setText("-");
-        deviCartons.setText("0");
-        deviAdjustedQty.setText("0");
         selectedArticle = null;
         selectedClient = null;
         clientList.clear();
         articleList.clear();
+        articleEntries.clear();
+        refreshArticleList();
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(";") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 }

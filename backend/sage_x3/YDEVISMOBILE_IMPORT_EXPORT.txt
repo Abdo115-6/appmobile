@@ -1,0 +1,462 @@
+================================================================================
+ Sage X3 v11 – Import/Export Method for YDEVISMOBILE
+================================================================================
+
+TABLE:         YDEVISMOBILE
+DESCRIPTION:   Mobile Devis (Quote) Entry from Android/Flutter Apps
+PRIMARY KEY:   ROWID (identity, auto-generated)
+BUSINESS KEY:  YSITE_0 + YBPCNUM_0 + YITMREF_0  (used to prevent duplicates)
+
+ASSUMPTIONS:
+- Single-table structure (no header/line split).
+- ROWID is an identity column managed by the database.
+- CREDATTIM_0, UPDDATTIM_0, AUUID_0, CREUSR_0, UPDUSR_0 are system-managed.
+- CSV delimiter: ";"
+- Record type codes:
+    E = En-tête (Header) — the only record type needed.
+- Import mode: CREATE (skip if business key exists to prevent duplicates).
+
+================================================================================
+1. IMPORT TEMPLATE DEFINITION (ADE)
+================================================================================
+
+Create a new import template via GESAIT > Import Templates:
+
+Template Code:       YDEVISMOBILE_IMP
+Description:         Import Devis from mobile app
+Record Type Codes:   E
+Delimiter:           ;
+
+--- Field Mapping (Record Type E) ---
+Position | Field         | Type       | Length | Mandatory | Description
+---------|---------------|------------|--------|-----------|--------------------------
+1        | YSITE_0       | Alpha      | 10     | Yes       | Site code
+2        | YBPCNUM_0     | Alpha      | 20     | Yes       | Customer code
+3        | YBPCNAM_0     | Alpha      | 100    | No        | Customer name
+4        | YITMREF_0     | Alpha      | 30     | Yes       | Item reference
+5        | YITMDES_0     | Alpha      | 200    | No        | Item description
+6        | YQTY_0        | Decimal    | 20,4   | Yes       | Quantity
+7        | YPRICE_0      | Decimal    | 20,4   | No        | Unit price
+8        | YCOEFF_0      | Decimal    | 20,4   | No        | Coefficient
+9        | YCARTON_0     | Integer    | -      | No        | Number of cartons
+
+--- Import Template ADE Screen Fields (GESAIT) ---
+Code:         YDEVISMOBILE_IMP
+Intitulé:     Import Devis Mobile
+Fichier:      YDEVISMOBILE
+Natures aut.: E
+
+--- Record Type E Configuration ---
+Code nature: E
+Description: En-tête Devis
+
+--- Columns ---
+NUM | CHAMP      | LNG | TYP | LIBELLE                | OBL
+1   | YSITE_0    | 10  | ALPH | Site                   | Yes
+2   | YBPCNUM_0  | 20  | ALPH | Customer Code          | Yes
+3   | YBPCNAM_0  | 100 | ALPH | Customer Name          | No
+4   | YITMREF_0  | 30  | ALPH | Item Reference          | Yes
+5   | YITMDES_0  | 200 | ALPH | Item Description       | No
+6   | YQTY_0     | -   | DEC  | Quantity               | Yes
+7   | YPRICE_0   | -   | DEC  | Price                  | No
+8   | YCOEFF_0   | -   | DEC  | Coefficient            | No
+9   | YCARTON_0  | -   | INT  | Cartons                | No
+
+================================================================================
+2. EXPORT TEMPLATE DEFINITION (ADE)
+================================================================================
+
+Template Code:       YDEVISMOBILE_EXP
+Description:         Export Devis data for external systems
+Record Type Codes:   E
+Delimiter:           ;
+
+--- Field Mapping (Record Type E) ---
+Position | Field         | Type       | Description
+---------|---------------|------------|--------------------------
+1        | YSITE_0       | Alpha      | Site code
+2        | YBPCNUM_0     | Alpha      | Customer code
+3        | YBPCNAM_0     | Alpha      | Customer name
+4        | YITMREF_0     | Alpha      | Item reference
+5        | YITMDES_0     | Alpha      | Item description
+6        | YQTY_0        | Decimal    | Quantity
+7        | YPRICE_0      | Decimal    | Unit price
+8        | YCOEFF_0      | Decimal    | Coefficient
+9        | YCARTON_0     | Integer    | Cartons
+10       | CREDATTIM_0   | Date       | Creation date
+11       | CREUSR_0      | Alpha      | Created by
+
+--- Export Template ADE Screen Fields (GESAIT) ---
+Code:         YDEVISMOBILE_EXP
+Intitulé:     Export Devis Mobile
+Fichier:      YDEVISMOBILE
+Natures aut.: E
+
+--- Columns ---
+NUM | CHAMP      | LNG | TYP | LIBELLE
+1   | YSITE_0    | 10  | ALPH | Site
+2   | YBPCNUM_0  | 20  | ALPH | Customer Code
+3   | YBPCNAM_0  | 100 | ALPH | Customer Name
+4   | YITMREF_0  | 30  | ALPH | Item Reference
+5   | YITMDES_0  | 200 | ALPH | Item Description
+6   | YQTY_0     | -   | DEC  | Quantity
+7   | YPRICE_0   | -   | DEC  | Price
+8   | YCOEFF_0   | -   | DEC  | Coefficient
+9   | YCARTON_0  | -   | INT  | Cartons
+10  | CREDATTIM_0| -   | DATE | Creation Date
+11  | CREUSR_0   | -   | ALPH | Created By
+
+================================================================================
+3. IMPORT METHOD (.IMP) – Sage X3 4GL
+================================================================================
+
+Save as: YDEVISMOBILE.IMP in the TRT directory of the solution.
+
+$FUNCTION YDEVISMOBILE_IMP
+$ACTION IMP
+$MODE CREATE
+
+#================================================================================
+# YDEVISMOBILE.IMP
+# Import method for YDEVISMOBILE table.
+#
+# Record type: E (En-tête)
+# Import mode: CREATE — skips records with existing business key
+#              (YSITE_0 + YBPCNUM_0 + YITMREF_0)
+# Delimiter:  ";"
+#
+# Business rules:
+#   - YQTY_0 must be > 0
+#   - YPRICE_0 must be >= 0 (if provided)
+#   - YCARTON_0 must be >= 0 (if provided)
+#   - Duplicate check: same YSITE_0 + YBPCNUM_0 + YITMREF_0 → skip + log warning
+#================================================================================
+
+#----------------------------------------------------------------------
+# Global variables
+#----------------------------------------------------------------------
+Local Char KEY(60)          # Business key for duplicate detection
+Local Integer NB_ERR        # Error counter
+Local Integer NB_CRE        # Created counter
+Local Integer NB_SKIP       # Skipped (duplicate) counter
+
+#----------------------------------------------------------------------
+# Initialize counters
+#----------------------------------------------------------------------
+NB_ERR  = 0
+NB_CRE  = 0
+NB_SKIP = 0
+
+#================================================================================
+# Record type E processing
+#================================================================================
+Case ACTION
+    When IMP
+        #------------------------------------------------------------------
+        # Field validation
+        #------------------------------------------------------------------
+        If YSITE_0 = ""
+            Call ERROR("Site (YSITE_0) is mandatory", "")
+            NB_ERR += 1
+            Return
+        Endif
+
+        If YBPCNUM_0 = ""
+            Call ERROR("Customer code (YBPCNUM_0) is mandatory", "")
+            NB_ERR += 1
+            Return
+        Endif
+
+        If YITMREF_0 = ""
+            Call ERROR("Item reference (YITMREF_0) is mandatory", "")
+            NB_ERR += 1
+            Return
+        Endif
+
+        If YQTY_0 <= 0
+            Call ERROR("Quantity (YQTY_0) must be greater than 0", "")
+            NB_ERR += 1
+            Return
+        Endif
+
+        If YPRICE_0 <> 0 And YPRICE_0 < 0
+            Call ERROR("Price (YPRICE_0) must be zero or positive", "")
+            NB_ERR += 1
+            Return
+        Endif
+
+        If YCARTON_0 <> 0 And YCARTON_0 < 0
+            Call ERROR("Cartons (YCARTON_0) must be zero or positive", "")
+            NB_ERR += 1
+            Return
+        Endif
+
+        #------------------------------------------------------------------
+        # Duplicate prevention: build business key and check existence
+        #------------------------------------------------------------------
+        KEY = YSITE_0 + "|" + YBPCNUM_0 + "|" + YITMREF_0
+
+        If clalev([M:YDEVISMOBILE]YSITE_0, YSITE_0) = 0
+        And clalev([M:YDEVISMOBILE]YBPCNUM_0, YBPCNUM_0) = 0
+        And clalev([M:YDEVISMOBILE]YITMREF_0, YITMREF_0) = 0
+            Call WARN("Duplicate record skipped: " + KEY, "")
+            NB_SKIP += 1
+            Return
+        Endif
+
+        #------------------------------------------------------------------
+        # Create the record
+        #------------------------------------------------------------------
+        [M:YDEVISMOBILE]YSITE_0    = YSITE_0
+        [M:YDEVISMOBILE]YBPCNUM_0  = YBPCNUM_0
+        [M:YDEVISMOBILE]YBPCNAM_0  = YBPCNAM_0
+        [M:YDEVISMOBILE]YITMREF_0  = YITMREF_0
+        [M:YDEVISMOBILE]YITMDES_0  = YITMDES_0
+        [M:YDEVISMOBILE]YQTY_0     = YQTY_0
+        [M:YDEVISMOBILE]YPRICE_0   = YPRICE_0
+        [M:YDEVISMOBILE]YCOEFF_0   = YCOEFF_0
+        [M:YDEVISMOBILE]YCARTON_0  = YCARTON_0
+        [M:YDEVISMOBILE]UPDTICK_0  = 0
+        [M:YDEVISMOBILE]CREDATTIM_0 = getdate(1)
+        [M:YDEVISMOBILE]UPDDATTIM_0 = getdate(1)
+        [M:YDEVISMOBILE]AUUID_0    = newuid()
+        [M:YDEVISMOBILE]CREUSR_0   = [V]GCONAM
+        [M:YDEVISMOBILE]UPDUSR_0   = [V]GCONAM
+
+        Write [M:YDEVISMOBILE]
+        If fstat <> 0
+            Call ERROR("Database write failed: " + num$(fstat), "")
+            NB_ERR += 1
+            Return
+        Endif
+
+        NB_CRE += 1
+
+    When END
+        #------------------------------------------------------------------
+        # End-of-file summary
+        #------------------------------------------------------------------
+        Call INFO("Import complete: " + num$(NB_CRE) + " created, " + \
+                  num$(NB_SKIP) + " skipped (duplicates), " + \
+                  num$(NB_ERR) + " errors", "")
+Endcase
+
+#================================================================================
+# End of YDEVISMOBILE.IMP
+#================================================================================
+
+================================================================================
+4. EXPORT METHOD – Sage X3 4GL
+================================================================================
+
+Save as: YDEVISMOBILE_EXP.TRT in the TRT directory of the solution.
+
+$FUNCTION YDEVISMOBILE_EXP
+$ACTION EXP
+
+#================================================================================
+# YDEVISMOBILE_EXP.TRT
+# Export method for YDEVISMOBILE table.
+#
+# Record type: E (En-tête)
+# Exports all records, ordered by creation date descending.
+#================================================================================
+
+#----------------------------------------------------------------------
+# Local variables
+#----------------------------------------------------------------------
+Local Integer EXP_NB         # Number of exported records
+Local Integer I
+
+#----------------------------------------------------------------------
+# Initialize
+#----------------------------------------------------------------------
+EXP_NB = 0
+
+#----------------------------------------------------------------------
+# Write CSV header (optional, for standalone export)
+#----------------------------------------------------------------------
+If [V]EXPHD = 1
+    Call EXPORT("E;YSITE_0;YBPCNUM_0;YBPCNAM_0;YITMREF_0;YITMDES_0;" + \
+                "YQTY_0;YPRICE_0;YCOEFF_0;YCARTON_0;CREDATTIM_0;CREUSR_0", \
+                "E", 1)
+Endif
+
+#----------------------------------------------------------------------
+# Read all records ordered by creation date descending
+#----------------------------------------------------------------------
+I = 0
+While 1
+    I += 1
+    If I = 1
+        Trst [M:YDEVISMOBILE]0
+        Read [M:YDEVISMOBILE]0
+    Else
+        Read next [M:YDEVISMOBILE]0
+    Endif
+    If fstat <> 0
+        Break
+    Endif
+
+    #--------------------------------------------------------------
+    # Export the record as type E
+    #--------------------------------------------------------------
+    Call EXPORT([M:YDEVISMOBILE]YSITE_0   + ";" + \
+                [M:YDEVISMOBILE]YBPCNUM_0 + ";" + \
+                [M:YDEVISMOBILE]YBPCNAM_0 + ";" + \
+                [M:YDEVISMOBILE]YITMREF_0 + ";" + \
+                [M:YDEVISMOBILE]YITMDES_0 + ";" + \
+                num$([M:YDEVISMOBILE]YQTY_0)    + ";" + \
+                num$([M:YDEVISMOBILE]YPRICE_0)  + ";" + \
+                num$([M:YDEVISMOBILE]YCOEFF_0)  + ";" + \
+                num$([M:YDEVISMOBILE]YCARTON_0) + ";" + \
+                date$([M:YDEVISMOBILE]CREDATTIM_0, "YYYYMMDD") + ";" + \
+                [M:YDEVISMOBILE]CREUSR_0, \
+                "E", 0)
+
+    EXP_NB += 1
+Endwhile
+
+#----------------------------------------------------------------------
+# Export summary
+#----------------------------------------------------------------------
+Call INFO("Export complete: " + num$(EXP_NB) + " records exported", "")
+
+#================================================================================
+# End of YDEVISMOBILE_EXP.TRT
+#================================================================================
+
+================================================================================
+5. SAMPLE CSV FILE
+================================================================================
+
+E;FBC;C001;Acme Corp;ART-001;Widget X10;100;25.50;2.5;40
+E;FMD;C002;Beta SARL;ART-002;Gadget Z5;50;15.00;1.0;50
+E;FBC;C003;Gamma Ltd;ART-003;Component Y2;200;8.75;0.5;400
+
+--- Explanation ---
+Line 1: Site=FBC, Customer=C001/Acme Corp, Article=ART-001/Widget X10,
+        Qty=100, Price=25.50, Coefficient=2.5, Cartons=40
+Line 2: Site=FMD, Customer=C002/Beta SARL, Article=ART-002/Gadget Z5,
+        Qty=50, Price=15.00, Coefficient=1.0, Cartons=50
+Line 3: Site=FBC, Customer=C003/Gamma Ltd, Article=ART-003/Component Y2,
+        Qty=200, Price=8.75, Coefficient=0.5, Cartons=400
+
+================================================================================
+6. FIELD DESCRIPTIONS
+================================================================================
+
+Field        | Type      | Description
+-------------|-----------|----------------------------------------------
+YSITE_0      | Alpha(10) | Site code (e.g., "FBC", "FMD"). Mandatory.
+YBPCNUM_0    | Alpha(20) | Customer/business partner code. Mandatory.
+YBPCNAM_0    | Alpha(100)| Customer name. Optional.
+YITMREF_0    | Alpha(30) | Item/product reference. Mandatory.
+YITMDES_0    | Alpha(200)| Item description. Optional.
+YQTY_0       | Decimal   | Quantity (adjusted). Mandatory, must be > 0.
+YPRICE_0     | Decimal   | Unit price. Optional, must be >= 0.
+YCOEFF_0     | Decimal   | Coefficient for carton calculation. Optional.
+YCARTON_0    | Integer   | Number of cartons. Optional, must be >= 0.
+
+System-managed fields (not imported):
+- ROWID: Identity, auto-generated by DB.
+- UPDTICK_0: Optimistic lock, initialized to 0.
+- CREDATTIM_0: Creation timestamp, set to current date.
+- UPDDATTIM_0: Update timestamp, set to current date.
+- AUUID_0: Unique identifier, generated by newuid().
+- CREUSR_0: Created by user, set to import operator.
+- UPDUSR_0: Updated by user, set to import operator.
+
+================================================================================
+7. EXECUTION FLOW
+================================================================================
+
+1. User places a CSV file in the import directory (AWE folder or via GESAIT).
+2. User goes to GESAIT > Import, selects template YDEVISMOBILE_IMP,
+   chooses the CSV file, and launches the import.
+3. Sage X3 reads the CSV line by line.
+4. For each line with record type "E":
+   a. The IMP method is triggered for that line.
+   b. Field values are mapped according to the template definition.
+   c. Validation rules are checked (mandatory fields, ranges).
+   d. A business key (YSITE_0|YBPCNUM_0|YITMREF_0) is built.
+   e. The database is queried for an existing record with the same key.
+   f. If found: record is skipped (duplicate prevention), warning logged.
+   g. If not found: a new YDEVISMOBILE record is written with
+      system fields (timestamps, UUID, user) auto-filled.
+5. After all lines are processed, the END action runs and prints a summary
+   (created, skipped, errors).
+
+================================================================================
+8. VALIDATION RULES
+================================================================================
+
+Rule                    | Field(s)        | Message
+------------------------|-----------------|--------------------------------
+Mandatory site          | YSITE_0         | Site is mandatory
+Mandatory customer      | YBPCNUM_0       | Customer code is mandatory
+Mandatory item          | YITMREF_0       | Item reference is mandatory
+Positive quantity       | YQTY_0          | Quantity must be > 0
+Non-negative price      | YPRICE_0        | Price must be >= 0
+Non-negative cartons    | YCARTON_0       | Cartons must be >= 0
+Duplicate prevention    | YSITE_0+YBPCNUM_0+YITMREF_0 | Duplicate skipped
+
+================================================================================
+9. ERROR HANDLING
+================================================================================
+
+- Each validation failure: logs an ERROR with a clear message + field name,
+  increments NB_ERR, and skips the current record (via Return).
+- Duplicate records: log a WARNING (not an error), increment NB_SKIP,
+  and skip the record.
+- Database write failure: checks fstat after Write; logs ERROR with
+  the fstat code and skips.
+- End-of-file: prints a summary of created/skipped/error counts.
+- The import continues to the next record after a failure (Return skips
+  only the current record, not the entire import).
+
+================================================================================
+10. TEST CASES
+================================================================================
+
+Test Case 1: Valid import
+   Input:  E;FBC;C001;Acme Corp;ART-001;Widget X10;100;25.50;2.5;40
+   Result: Record created. NB_CRE = 1, NB_ERR = 0, NB_SKIP = 0.
+
+Test Case 2: Missing mandatory field
+   Input:  E;;C001;Acme Corp;ART-001;Widget X10;100;25.50;2.5;40
+   Result: ERROR "Site is mandatory". NB_ERR = 1. No record created.
+
+Test Case 3: Quantity <= 0
+   Input:  E;FBC;C001;Acme Corp;ART-001;Widget X10;0;25.50;2.5;40
+   Result: ERROR "Quantity must be greater than 0". NB_ERR = 1.
+
+Test Case 4: Negative price
+   Input:  E;FBC;C001;Acme Corp;ART-001;Widget X10;100;-5.00;2.5;40
+   Result: ERROR "Price must be zero or positive". NB_ERR = 1.
+
+Test Case 5: Duplicate record
+   Input:  E;FBC;C001;Acme Corp;ART-001;Widget X10;100;25.50;2.5;40
+           E;FBC;C001;Acme Corp;ART-001;Widget X10;200;30.00;2.5;80
+   Result: First line created. Second line: WARNING "Duplicate skipped".
+           NB_CRE = 1, NB_SKIP = 1.
+
+Test Case 6: Multiple valid records
+   Input:  E;FBC;C001;Acme;ART-A;Widget;100;25;2;40
+           E;FMD;C002;Beta;ART-B;Gadget;50;15;1;50
+   Result: Both created. NB_CRE = 2.
+
+Test Case 7: Mixed valid + invalid
+   Input:  E;FBC;C001;Acme;ART-A;Widget;100;25;2;40
+           E;FBC;;;ART-B;Gadget;50;15;1;50
+   Result: First created. Second: ERROR "Customer code is mandatory".
+           NB_CRE = 1, NB_ERR = 1.
+
+Test Case 8: Empty file
+   Input:  (empty file)
+   Result: No records processed. NB_CRE = 0, NB_SKIP = 0, NB_ERR = 0.
+           Summary printed.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

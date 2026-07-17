@@ -48,4 +48,7 @@ public interface ApiService {
 
     @GET("api/devis/clients")
     Call<List<BpCustomerResponse>> searchClients(@Query("q") String q);
+
+    @GET("api/devis/export")
+    Call<ResponseBody> exportDevisCsv();
 }
