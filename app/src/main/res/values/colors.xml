@@ -51,4 +51,8 @@
     <color name="leased_orange">#FFFFFFFF</color>
     <color name="leased_label">#FF888888</color>
     <color name="price_green">#FFFFFFFF</color>
+
+    <!-- Stock indicators -->
+    <color name="stock_green">#FF4CAF50</color>
+    <color name="stock_red">#FFFF5252</color>
 </resources>

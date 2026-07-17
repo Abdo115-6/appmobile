@@ -43,6 +43,7 @@ import com.journeyapps.barcodescanner.ScanOptions;
 import com.quiz.mallzellij_show_android.api.RetrofitClient;
 import com.quiz.mallzellij_show_android.model.Article;
 import com.quiz.mallzellij_show_android.model.BpCustomerResponse;
+import com.quiz.mallzellij_show_android.model.DevisConfirmRequest;
 import com.quiz.mallzellij_show_android.model.DevisRequest;
 
 import java.io.IOException;
@@ -115,15 +116,11 @@ public class DevisActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<String> storagePermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
-                if (granted) {
-                    if (pendingCsvContent != null) {
-                        saveCsvToFile(pendingCsvFileName, pendingCsvContent);
-                        pendingCsvContent = null;
-                        pendingCsvFileName = null;
-                    } else {
-                        saveCsvToDownloads();
-                    }
-                } else {
+                if (granted && pendingCsvContent != null) {
+                    saveCsvToFile(pendingCsvFileName, pendingCsvContent);
+                    pendingCsvContent = null;
+                    pendingCsvFileName = null;
+                } else if (!granted) {
                     deviError.setText("Storage permission denied");
                     deviError.setVisibility(View.VISIBLE);
                 }
@@ -251,6 +248,11 @@ public class DevisActivity extends AppCompatActivity {
         deviEditBtn.setOnClickListener(v -> editDevi());
         deviCsvBtn.setOnClickListener(v -> downloadCsv());
         deviConfirmBtn.setOnClickListener(v -> confirmDevi());
+
+        String articleRef = getIntent().getStringExtra("article_ref");
+        if (articleRef != null && !articleRef.isEmpty()) {
+            fetchArticleByBarcode(articleRef);
+        }
     }
 
     private void searchClients(String q) {
@@ -517,91 +519,66 @@ public class DevisActivity extends AppCompatActivity {
     }
 
     private void downloadCsv() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            saveCsvToDownloads();
-        } else if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PackageManager.PERMISSION_GRANTED) {
-            saveCsvToDownloads();
-        } else {
-            storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        }
-    }
+        if (articleEntries.isEmpty()) return;
 
-    private void saveCsvToDownloads() {
-        String site = deviReviewSite.getText().toString();
-        String clientCode = selectedClient != null ? selectedClient.getCode() : "";
-        // Generate one mobile key for this review CSV
+        deviProgress.setVisibility(View.VISIBLE);
+        deviCsvBtn.setEnabled(false);
+        deviEditBtn.setEnabled(false);
+        deviError.setVisibility(View.GONE);
+
+        String site = deviSite.getText().toString().trim();
+        String email = UserSession.getInstance().getEmail();
         String mobileKey = "MOB" + String.format("%07d", System.currentTimeMillis() % 10000000);
-        String today = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(new java.util.Date());
 
-        StringBuilder csv = new StringBuilder();
-        // E: ;TYPE;;SITE;SQN;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOBILE_KEY
-        csv.append("E;;")
-           .append(escapeCsv(site)).append(";")
-           .append("SQN").append(";;")  // SQN = fixed
-           .append(escapeCsv(clientCode)).append(";")
-           .append(today).append(";;")
-           .append(escapeCsv(site)).append(";")
-           .append("MAD;")
-           .append(mobileKey).append("\n");
+        DevisConfirmRequest confirmRequest = new DevisConfirmRequest();
+        confirmRequest.setSite(site);
+        confirmRequest.setClientCode(selectedClient.getCode());
+        confirmRequest.setClientName(selectedClient.getName());
+        confirmRequest.setCreusr0(email);
+        confirmRequest.setMobileKey(mobileKey);
+
+        List<DevisRequest> articleRequests = new ArrayList<>();
         for (ArticleEntry entry : articleEntries) {
-            // L: ;TYPE;;ARTICLE_REF;UN;QTY;PRICE;MOBILE_KEY
-            csv.append("L;;")
-               .append(escapeCsv(entry.article.getRef())).append(";")
-               .append("UN;")
-               .append(entry.quantity.stripTrailingZeros().toPlainString()).append(";")
-               .append(entry.price.stripTrailingZeros().toPlainString()).append(";")
-               .append(mobileKey).append("\n");
+            DevisRequest req = new DevisRequest();
+            req.setArticleRef(entry.article.getRef());
+            req.setArticleName(entry.article.getNom());
+            req.setQuantity(entry.quantity);
+            req.setPrice(entry.price);
+            req.setCoefficient(entry.coefficient);
+            req.setCartons(entry.cartons);
+            articleRequests.add(req);
         }
+        confirmRequest.setArticles(articleRequests);
 
-        String fileName = "devi_" + System.currentTimeMillis() + ".csv";
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
-            values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
-            values.put(MediaStore.Downloads.IS_PENDING, 1);
-            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) {
-                deviError.setText("Failed to create file");
-                deviError.setVisibility(View.VISIBLE);
-                return;
-            }
-            try (OutputStream out = getContentResolver().openOutputStream(uri)) {
-                if (out != null) {
-                    out.write(csv.toString().getBytes());
+        RetrofitClient.getApiService().confirmAndExportCsv(confirmRequest).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                deviProgress.setVisibility(View.GONE);
+                deviCsvBtn.setEnabled(true);
+                deviEditBtn.setEnabled(true);
+                if (response.isSuccessful()) {
+                    deviError.setText("Devi confirmed and CSV saved on server");
+                    deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+                    deviReviewContainer.setVisibility(View.GONE);
+                    deviFormContainer.setVisibility(View.VISIBLE);
+                    deviError.setVisibility(View.VISIBLE);
+                    clearForm();
+                } else {
+                    deviError.setText("Server error: " + response.code());
+                    deviError.setTextColor(getResources().getColor(android.R.color.holo_red_light, getTheme()));
+                    deviError.setVisibility(View.VISIBLE);
                 }
-                values.clear();
-                values.put(MediaStore.Downloads.IS_PENDING, 0);
-                getContentResolver().update(uri, values, null, null);
-                deviError.setText("CSV saved to Downloads");
-                deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
-                deviError.setVisibility(View.VISIBLE);
-                Toast.makeText(DevisActivity.this, "CSV saved to Downloads", Toast.LENGTH_SHORT).show();
-            } catch (IOException e) {
-                deviError.setText("Failed to save CSV: " + e.getMessage());
-                deviError.setVisibility(View.VISIBLE);
-                Toast.makeText(DevisActivity.this, "Failed to save CSV: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                getContentResolver().delete(uri, null, null);
             }
-        } else {
-            java.io.File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            java.io.File csvFile = new java.io.File(downloadsDir, fileName);
-            try (java.io.FileWriter writer = new java.io.FileWriter(csvFile)) {
-                writer.write(csv.toString());
-                deviError.setText("CSV saved to Downloads");
-                deviError.setTextColor(getResources().getColor(android.R.color.white, getTheme()));
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                deviProgress.setVisibility(View.GONE);
+                deviCsvBtn.setEnabled(true);
+                deviEditBtn.setEnabled(true);
+                deviError.setText("Connection error: " + t.getMessage());
                 deviError.setVisibility(View.VISIBLE);
-                Toast.makeText(DevisActivity.this, "CSV saved to Downloads", Toast.LENGTH_SHORT).show();
-                Uri fileUri = Uri.fromFile(csvFile);
-                Intent scanFile = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, fileUri);
-                sendBroadcast(scanFile);
-            } catch (IOException e) {
-                deviError.setText("Failed to save CSV: " + e.getMessage());
-                deviError.setVisibility(View.VISIBLE);
-                Toast.makeText(DevisActivity.this, "Failed to save CSV: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
-        }
+        });
     }
 
     private void downloadAllCsv() {
@@ -720,11 +697,4 @@ public class DevisActivity extends AppCompatActivity {
         refreshArticleList();
     }
 
-    private String escapeCsv(String value) {
-        if (value == null) return "";
-        if (value.contains(";") || value.contains("\"") || value.contains("\n")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
-    }
 }

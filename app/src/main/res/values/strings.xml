@@ -105,4 +105,13 @@
     <string name="devi_add_article_btn">Add Article</string>
     <string name="devi_remove_btn">Remove</string>
     <string name="devi_no_articles">No articles added yet</string>
+
+    <string name="add_to_quote">Devis</string>
+    <string name="desc_favorite">Toggle favorite</string>
+    <string name="in_stock">IN STOCK</string>
+    <string name="out_of_stock">OUT OF STOCK</string>
+    <string name="physical_stock_label">Physical</string>
+    <string name="available_stock_label">Available</string>
+    <string name="added_to_fav">Added to favorites</string>
+    <string name="removed_from_fav">Removed from favorites</string>
 </resources>

@@ -22,6 +22,12 @@ public interface ItmMvtRepository extends JpaRepository<ItmMvt, Long> {
     @Query("SELECT SUM(m.phyall0) FROM ItmMvt m WHERE m.itmref0 = :itmref0 AND m.stofcy0 IN :sites AND m.phyall0 > 0")
     BigDecimal sumPhyall0ByItmref0AndSites(@Param("itmref0") String itmref0, @Param("sites") List<String> sites);
 
+    @Query("SELECT SUM(m.physto0) FROM ItmMvt m WHERE m.itmref0 = :itmref0 AND m.stofcy0 IN :sites AND m.physto0 > 0")
+    BigDecimal sumPhysto0ByItmref0AndSites(@Param("itmref0") String itmref0, @Param("sites") List<String> sites);
+
     @Query("SELECT m.itmref0, SUM(m.phyall0) FROM ItmMvt m WHERE m.stofcy0 IN :sites AND m.phyall0 > 0 GROUP BY m.itmref0")
     List<Object[]> sumPhyall0GroupedByItmref0(@Param("sites") List<String> sites);
+
+    @Query("SELECT m.itmref0, SUM(m.physto0), SUM(m.phyall0) FROM ItmMvt m WHERE m.stofcy0 IN :sites AND m.physto0 > 0 GROUP BY m.itmref0")
+    List<Object[]> sumStocksGroupedByItmref0(@Param("sites") List<String> sites);
 }

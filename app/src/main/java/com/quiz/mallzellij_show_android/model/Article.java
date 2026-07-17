@@ -9,6 +9,8 @@ public class Article {
     private String ref;
     private BigDecimal coefficient;
     private String sau;
+    private int physicalStock;
+    private int availableStock;
 
     public Long getId() { return id; }
     public String getNom() { return nom; }
@@ -16,4 +18,6 @@ public class Article {
     public String getRef() { return ref; }
     public BigDecimal getCoefficient() { return coefficient; }
     public String getSau() { return sau; }
+    public int getPhysicalStock() { return physicalStock; }
+    public int getAvailableStock() { return availableStock; }
 }

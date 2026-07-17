@@ -1,6 +1,7 @@
 package com.quiz.backend.controller;
 
 import com.quiz.backend.dto.BpCustomerResponse;
+import com.quiz.backend.dto.DevisConfirmRequest;
 import com.quiz.backend.dto.DevisRequest;
 import com.quiz.backend.entity.YdevisMobile;
 import com.quiz.backend.repository.BpCustomerRepository;
@@ -11,6 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -71,6 +75,79 @@ public class DevisController {
         Integer maxNum = ydevisMobileRepository.findMaxYmobkey0Num();
         int nextNum = (maxNum != null ? maxNum : 0) + 1;
         return "MOB" + String.format("%07d", nextNum);
+    }
+
+    @PostMapping("/confirm-and-export")
+    public ResponseEntity<String> confirmAndExport(@RequestBody DevisConfirmRequest request) {
+        String mobileKey = request.getMobileKey();
+        if (mobileKey == null || mobileKey.isEmpty()) {
+            mobileKey = getNextMobileKey();
+        }
+
+        for (DevisRequest article : request.getArticles()) {
+            YdevisMobile devis = new YdevisMobile();
+            String yid = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+            devis.setYid0(yid);
+            devis.setYnum0(truncate(request.getSite(), 5) + "-" + yid);
+            devis.setYclient0(concatWithTruncation(request.getClientCode(), request.getClientName(), " - ", 15));
+            devis.setYsite0(truncate(request.getSite(), 5));
+            devis.setYarticle0(concatWithTruncation(article.getArticleRef(), article.getArticleName(), " - ", 24));
+            devis.setYqty0(article.getQuantity());
+            devis.setYprice0(article.getPrice());
+            devis.setYcoeff0(article.getCoefficient());
+            devis.setYcarton0(article.getCartons());
+            devis.setYbpcnum0(truncate(request.getClientCode(), 20));
+            devis.setYbpcnam0(truncate(request.getClientName(), 100));
+            devis.setYitmref0(truncate(article.getArticleRef(), 30));
+            devis.setYitmdes0(truncate(article.getArticleName(), 200));
+            devis.setCreusr0(truncate(request.getCreusr0(), 20));
+            devis.setCredattim0(LocalDateTime.now());
+            devis.setUpddattim0(LocalDateTime.now());
+            devis.setUpdtick0(0);
+            devis.setUpdusr0(truncate(request.getCreusr0(), 20));
+            devis.setAuuid0(toBytes(UUID.randomUUID()));
+            devis.setYmobkey0(mobileKey);
+            ydevisMobileRepository.save(devis);
+        }
+
+        try {
+            saveCsvToServerDir(request, mobileKey);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Failed to save CSV: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok("Devis confirmed and CSV saved on server with key: " + mobileKey);
+    }
+
+    private void saveCsvToServerDir(DevisConfirmRequest request, String mobileKey) throws IOException {
+        File dir = new File("csv-exports");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        StringBuilder csv = new StringBuilder();
+        csv.append("E;;")
+           .append(escapeCsv(request.getSite())).append(";")
+           .append("SQN").append(";;")
+           .append(escapeCsv(request.getClientCode())).append(";")
+           .append(today).append(";;")
+           .append(escapeCsv(request.getSite())).append(";")
+           .append("MAD;")
+           .append(mobileKey).append("\n");
+        for (DevisRequest article : request.getArticles()) {
+            csv.append("L;;")
+               .append(escapeCsv(article.getArticleRef())).append(";")
+               .append("UN;")
+               .append(article.getQuantity().stripTrailingZeros().toPlainString()).append(";")
+               .append(article.getPrice().stripTrailingZeros().toPlainString()).append(";")
+               .append(mobileKey).append("\n");
+        }
+
+        File csvFile = new File(dir, "devi_" + mobileKey + ".csv");
+        try (FileWriter writer = new FileWriter(csvFile)) {
+            writer.write(csv.toString());
+        }
     }
 
     @GetMapping("/clients")

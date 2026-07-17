@@ -32,17 +32,17 @@ public class ArticleController {
 
     @GetMapping
     public List<ArticleResponse> getAll() {
-        Map<String, Integer> qtyMap = buildQuantityMap();
+        Map<String, int[]> stockMap = buildStockMap();
         return itmMasterRepository.findAll().stream()
-                .map(m -> toResponse(m, qtyMap))
+                .map(m -> toResponse(m, stockMap))
                 .toList();
     }
 
     @GetMapping("/search")
     public List<ArticleResponse> search(@RequestParam String q) {
-        Map<String, Integer> qtyMap = buildQuantityMap();
+        Map<String, int[]> stockMap = buildStockMap();
         return itmMasterRepository.findByItmdes10ContainingIgnoreCase(q).stream()
-                .map(m -> toResponse(m, qtyMap))
+                .map(m -> toResponse(m, stockMap))
                 .toList();
     }
 
@@ -51,9 +51,11 @@ public class ArticleController {
         String ref = ean.trim().split("\\s+")[0];
         return itmMasterRepository.findByItmref0(ref)
                 .map(m -> {
-                    BigDecimal sum = itmMvtRepository.sumPhyall0ByItmref0AndSites(m.getItmref0(), SITES);
-                    Integer qty = sum != null ? sum.intValue() : 0;
-                    return ResponseEntity.ok(new ArticleResponse(m.getRowid(), m.getItmdes10(), qty, m.getItmref0(), m.getPcustucoe0(), m.getSau0()));
+                    BigDecimal sumPhy = itmMvtRepository.sumPhysto0ByItmref0AndSites(m.getItmref0(), SITES);
+                    BigDecimal sumAll = itmMvtRepository.sumPhyall0ByItmref0AndSites(m.getItmref0(), SITES);
+                    int phy = sumPhy != null ? sumPhy.intValue() : 0;
+                    int all = sumAll != null ? sumAll.intValue() : 0;
+                    return ResponseEntity.ok(new ArticleResponse(m.getRowid(), m.getItmdes10(), all, m.getItmref0(), m.getPcustucoe0(), m.getSau0(), phy, all));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -80,18 +82,19 @@ public class ArticleController {
                 .toList();
     }
 
-    private Map<String, Integer> buildQuantityMap() {
-        Map<String, Integer> map = new HashMap<>();
-        for (Object[] row : itmMvtRepository.sumPhyall0GroupedByItmref0(SITES)) {
+    private Map<String, int[]> buildStockMap() {
+        Map<String, int[]> map = new HashMap<>();
+        for (Object[] row : itmMvtRepository.sumStocksGroupedByItmref0(SITES)) {
             String ref = (String) row[0];
-            BigDecimal sum = (BigDecimal) row[1];
-            map.put(ref, sum != null ? sum.intValue() : 0);
+            BigDecimal phy = (BigDecimal) row[1];
+            BigDecimal all = (BigDecimal) row[2];
+            map.put(ref, new int[]{phy != null ? phy.intValue() : 0, all != null ? all.intValue() : 0});
         }
         return map;
     }
 
-    private ArticleResponse toResponse(ItmMaster m, Map<String, Integer> qtyMap) {
-        Integer qty = qtyMap.getOrDefault(m.getItmref0(), 0);
-        return new ArticleResponse(m.getRowid(), m.getItmdes10(), qty, m.getItmref0(), m.getPcustucoe0(), m.getSau0());
+    private ArticleResponse toResponse(ItmMaster m, Map<String, int[]> stockMap) {
+        int[] stocks = stockMap.getOrDefault(m.getItmref0(), new int[]{0, 0});
+        return new ArticleResponse(m.getRowid(), m.getItmdes10(), stocks[1], m.getItmref0(), m.getPcustucoe0(), m.getSau0(), stocks[0], stocks[1]);
     }
 }

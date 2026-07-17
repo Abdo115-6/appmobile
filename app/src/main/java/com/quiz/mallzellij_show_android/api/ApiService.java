@@ -3,6 +3,7 @@ package com.quiz.mallzellij_show_android.api;
 import com.quiz.mallzellij_show_android.model.Article;
 import com.quiz.mallzellij_show_android.model.ArticleStock;
 import com.quiz.mallzellij_show_android.model.AuthResponse;
+import com.quiz.mallzellij_show_android.model.DevisConfirmRequest;
 import com.quiz.mallzellij_show_android.model.DevisRequest;
 import com.quiz.mallzellij_show_android.model.BpCustomerResponse;
 import com.quiz.mallzellij_show_android.model.InventoryRequest;
@@ -45,6 +46,9 @@ public interface ApiService {
 
     @POST("api/devis")
     Call<Void> submitDevis(@Body DevisRequest request);
+
+    @POST("api/devis/confirm-and-export")
+    Call<ResponseBody> confirmAndExportCsv(@Body DevisConfirmRequest request);
 
     @GET("api/devis/clients")
     Call<List<BpCustomerResponse>> searchClients(@Query("q") String q);

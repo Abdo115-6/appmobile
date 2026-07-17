@@ -1,6 +1,7 @@
 package com.quiz.mallzellij_show_android;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -31,7 +32,11 @@ import com.quiz.mallzellij_show_android.model.Article;
 import com.quiz.mallzellij_show_android.UserSession;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -48,6 +53,11 @@ public class ArticlesActivity extends AppCompatActivity {
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
 
+    private SharedPreferences favPrefs;
+    private Set<String> favoriteRefs = new HashSet<>();
+
+    private int currentSortMode = 0; // 0 = fav first, 1 = in-stock first, 2 = alpha
+
     private final ActivityResultLauncher<ScanOptions> barcodeLauncher =
             registerForActivityResult(new ScanContract(), result -> {
                 if (result.getContents() != null) {
@@ -60,12 +70,31 @@ public class ArticlesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_articles);
 
+        favPrefs = getSharedPreferences("favorites", MODE_PRIVATE);
+        favoriteRefs = new HashSet<>(favPrefs.getStringSet("refs", new HashSet<>()));
+
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.action_logout) {
+            int id = item.getItemId();
+            if (id == R.id.action_logout) {
                 UserSession.getInstance().logout();
                 startActivity(new Intent(this, LoginActivity.class));
                 finish();
+                return true;
+            } else if (id == R.id.action_sort_fav) {
+                currentSortMode = 0;
+                item.setChecked(true);
+                sortAndRefresh();
+                return true;
+            } else if (id == R.id.action_sort_stock) {
+                currentSortMode = 1;
+                item.setChecked(true);
+                sortAndRefresh();
+                return true;
+            } else if (id == R.id.action_sort_alpha) {
+                currentSortMode = 2;
+                item.setChecked(true);
+                sortAndRefresh();
                 return true;
             }
             return false;
@@ -104,14 +133,40 @@ public class ArticlesActivity extends AppCompatActivity {
         ImageButton scanButton = findViewById(R.id.scanButton);
         scanButton.setOnClickListener(v -> startScan());
 
-        adapter = new ArticleAdapter(article -> {
-            Intent intent = new Intent(this, ArticleStockActivity.class);
-            intent.putExtra("article_id", article.getId());
-            intent.putExtra("article_name", article.getNom());
-            startActivity(intent);
+        adapter = new ArticleAdapter(new ArticleAdapter.OnArticleActionListener() {
+            @Override
+            public void onArticleClick(Article article) {
+                Intent intent = new Intent(ArticlesActivity.this, ArticleStockActivity.class);
+                intent.putExtra("article_id", article.getId());
+                intent.putExtra("article_name", article.getNom());
+                startActivity(intent);
+            }
+
+            @Override
+            public void onFavoriteClick(Article article, boolean isFavorited) {
+                String ref = article.getRef();
+                if (isFavorited) {
+                    favoriteRefs.add(ref);
+                } else {
+                    favoriteRefs.remove(ref);
+                }
+                favPrefs.edit().putStringSet("refs", favoriteRefs).apply();
+                adapter.setFavoriteRefs(favoriteRefs);
+                Toast.makeText(ArticlesActivity.this,
+                        isFavorited ? "Added to favorites" : "Removed from favorites",
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAddToQuoteClick(Article article) {
+                Intent intent = new Intent(ArticlesActivity.this, DevisActivity.class);
+                intent.putExtra("article_ref", article.getRef());
+                startActivity(intent);
+            }
         });
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter.setFavoriteRefs(favoriteRefs);
 
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -136,7 +191,7 @@ public class ArticlesActivity extends AppCompatActivity {
                 progress.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
                     allArticles = response.body();
-                    adapter.setArticles(allArticles);
+                    sortAndRefresh();
                 } else {
                     showError("Failed to load articles");
                 }
@@ -150,9 +205,40 @@ public class ArticlesActivity extends AppCompatActivity {
         });
     }
 
+    private void sortAndRefresh() {
+        List<Article> sorted = new ArrayList<>(allArticles);
+        Comparator<Article> comp;
+        switch (currentSortMode) {
+            case 0:
+                comp = (a, b) -> {
+                    boolean aFav = favoriteRefs.contains(a.getRef());
+                    boolean bFav = favoriteRefs.contains(b.getRef());
+                    if (aFav != bFav) return aFav ? -1 : 1;
+                    boolean aStock = a.getPhysicalStock() > 0;
+                    boolean bStock = b.getPhysicalStock() > 0;
+                    if (aStock != bStock) return aStock ? -1 : 1;
+                    return a.getNom().compareToIgnoreCase(b.getNom());
+                };
+                break;
+            case 1:
+                comp = (a, b) -> {
+                    boolean aStock = a.getPhysicalStock() > 0;
+                    boolean bStock = b.getPhysicalStock() > 0;
+                    if (aStock != bStock) return aStock ? -1 : 1;
+                    return a.getNom().compareToIgnoreCase(b.getNom());
+                };
+                break;
+            default:
+                comp = Comparator.comparing(Article::getNom, String.CASE_INSENSITIVE_ORDER);
+                break;
+        }
+        Collections.sort(sorted, comp);
+        adapter.setArticles(sorted);
+    }
+
     private void filterArticles(String query) {
         if (query.isEmpty()) {
-            adapter.setArticles(allArticles);
+            sortAndRefresh();
             return;
         }
 
@@ -163,7 +249,34 @@ public class ArticlesActivity extends AppCompatActivity {
             public void onResponse(Call<List<Article>> call, Response<List<Article>> response) {
                 progress.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
-                    adapter.setArticles(response.body());
+                    List<Article> list = response.body();
+                    Comparator<Article> comp;
+                    switch (currentSortMode) {
+                        case 0:
+                            comp = (a, b) -> {
+                                boolean aFav = favoriteRefs.contains(a.getRef());
+                                boolean bFav = favoriteRefs.contains(b.getRef());
+                                if (aFav != bFav) return aFav ? -1 : 1;
+                                boolean aStock = a.getPhysicalStock() > 0;
+                                boolean bStock = b.getPhysicalStock() > 0;
+                                if (aStock != bStock) return aStock ? -1 : 1;
+                                return a.getNom().compareToIgnoreCase(b.getNom());
+                            };
+                            break;
+                        case 1:
+                            comp = (a, b) -> {
+                                boolean aStock = a.getPhysicalStock() > 0;
+                                boolean bStock = b.getPhysicalStock() > 0;
+                                if (aStock != bStock) return aStock ? -1 : 1;
+                                return a.getNom().compareToIgnoreCase(b.getNom());
+                            };
+                            break;
+                        default:
+                            comp = Comparator.comparing(Article::getNom, String.CASE_INSENSITIVE_ORDER);
+                            break;
+                    }
+                    Collections.sort(list, comp);
+                    adapter.setArticles(list);
                 }
             }
 
@@ -198,9 +311,8 @@ public class ArticlesActivity extends AppCompatActivity {
                 progress.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
                     Article article = response.body();
-                    Intent intent = new Intent(ArticlesActivity.this, ArticleStockActivity.class);
-                    intent.putExtra("article_id", article.getId());
-                    intent.putExtra("article_name", article.getNom());
+                    Intent intent = new Intent(ArticlesActivity.this, DevisActivity.class);
+                    intent.putExtra("article_ref", article.getRef());
                     startActivity(intent);
                 } else {
                     String msg = "Server error: " + response.code() + " for ref: [" + ref + "]";
