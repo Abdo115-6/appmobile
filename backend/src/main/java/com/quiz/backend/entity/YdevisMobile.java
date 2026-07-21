@@ -37,6 +37,9 @@ public class YdevisMobile {
     @Column(name = "YPRICE_0")
     private BigDecimal yprice0;
 
+    @Column(name = "YUNIT_0", length = 5)
+    private String yunit0;
+
     @Column(name = "YCOEFF_0")
     private BigDecimal ycoeff0;
 
@@ -93,6 +96,8 @@ public class YdevisMobile {
     public void setYqty0(BigDecimal yqty0) { this.yqty0 = yqty0; }
     public BigDecimal getYprice0() { return yprice0; }
     public void setYprice0(BigDecimal yprice0) { this.yprice0 = yprice0; }
+    public String getYunit0() { return yunit0; }
+    public void setYunit0(String yunit0) { this.yunit0 = yunit0; }
     public BigDecimal getYcoeff0() { return ycoeff0; }
     public void setYcoeff0(BigDecimal ycoeff0) { this.ycoeff0 = ycoeff0; }
     public Integer getYcarton0() { return ycarton0; }

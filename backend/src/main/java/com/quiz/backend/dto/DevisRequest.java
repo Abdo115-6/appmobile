@@ -12,6 +12,7 @@ public class DevisRequest {
     private BigDecimal price;
     private BigDecimal coefficient;
     private Integer cartons;
+    private String unit;
     private String creusr0;
     private String mobileKey;
 
@@ -33,6 +34,8 @@ public class DevisRequest {
     public void setCoefficient(BigDecimal coefficient) { this.coefficient = coefficient; }
     public Integer getCartons() { return cartons; }
     public void setCartons(Integer cartons) { this.cartons = cartons; }
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
     public String getCreusr0() { return creusr0; }
     public void setCreusr0(String creusr0) { this.creusr0 = creusr0; }
     public String getMobileKey() { return mobileKey; }

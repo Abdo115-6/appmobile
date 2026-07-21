@@ -466,6 +466,7 @@ public class DevisActivity extends AppCompatActivity {
             request.setArticleName(entry.article.getNom());
             request.setQuantity(entry.quantity);
             request.setPrice(entry.price);
+            request.setUnit(entry.article.getSau() != null ? entry.article.getSau() : "UN");
             request.setCoefficient(entry.coefficient);
             request.setCartons(entry.cartons);
             request.setCreusr0(email);
@@ -544,6 +545,7 @@ public class DevisActivity extends AppCompatActivity {
             req.setArticleName(entry.article.getNom());
             req.setQuantity(entry.quantity);
             req.setPrice(entry.price);
+            req.setUnit(entry.article.getSau() != null ? entry.article.getSau() : "UN");
             req.setCoefficient(entry.coefficient);
             req.setCartons(entry.cartons);
             articleRequests.add(req);

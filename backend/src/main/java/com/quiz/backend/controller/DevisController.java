@@ -47,6 +47,7 @@ public class DevisController {
         devis.setYarticle0(concatWithTruncation(request.getArticleRef(), request.getArticleName(), " - ", 24));
         devis.setYqty0(request.getQuantity());
         devis.setYprice0(request.getPrice());
+        devis.setYunit0(truncate(request.getUnit(), 5));
         devis.setYcoeff0(request.getCoefficient());
         devis.setYcarton0(request.getCartons());
         devis.setYbpcnum0(truncate(request.getClientCode(), 20));
@@ -94,6 +95,7 @@ public class DevisController {
             devis.setYarticle0(concatWithTruncation(article.getArticleRef(), article.getArticleName(), " - ", 24));
             devis.setYqty0(article.getQuantity());
             devis.setYprice0(article.getPrice());
+            devis.setYunit0(truncate(article.getUnit(), 5));
             devis.setYcoeff0(article.getCoefficient());
             devis.setYcarton0(article.getCartons());
             devis.setYbpcnum0(truncate(request.getClientCode(), 20));
@@ -127,21 +129,20 @@ public class DevisController {
 
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         StringBuilder csv = new StringBuilder();
-        csv.append("E;;")
+        csv.append("E;")
            .append(escapeCsv(request.getSite())).append(";")
-           .append("SQN").append(";;")
+           .append("SQN").append(";")
            .append(escapeCsv(request.getClientCode())).append(";")
-           .append(today).append(";;")
+           .append(today).append(";")
+           .append(mobileKey).append(";")
            .append(escapeCsv(request.getSite())).append(";")
-           .append("MAD;")
-           .append(mobileKey).append("\n");
+           .append("MAD").append("\n");
         for (DevisRequest article : request.getArticles()) {
-            csv.append("L;;")
+            csv.append("L;")
                .append(escapeCsv(article.getArticleRef())).append(";")
-               .append("UN;")
+               .append(escapeCsv(article.getUnit() != null ? article.getUnit() : "UN")).append(";")
                .append(article.getQuantity().stripTrailingZeros().toPlainString()).append(";")
-               .append(article.getPrice().stripTrailingZeros().toPlainString()).append(";")
-               .append(mobileKey).append("\n");
+               .append(article.getPrice().stripTrailingZeros().toPlainString()).append("\n");
         }
 
         File csvFile = new File(dir, "devi_" + mobileKey + ".csv");
@@ -176,24 +177,23 @@ public class DevisController {
             String ymdStr = first.getCredattim0() != null
                     ? first.getCredattim0().format(ymd) : LocalDate.now().format(ymd);
 
-            // E: ;TYPE;;SITE;SQN;;CLIENT_CODE;DATE;;SITE;CURRENCY;MOBILE_KEY
-            csv.append("E;;")
+            // E: E;SITE;SQN;;CLIENT_CODE;DATE;MOBILE_KEY;SITE;CURRENCY
+            csv.append("E;")
                .append(escapeCsv(first.getYsite0())).append(";")
-               .append("SQN").append(";;")  // SQN = fixed
+               .append("SQN").append(";")
                .append(escapeCsv(first.getYbpcnum0())).append(";")
-               .append(ymdStr).append(";;")
+               .append(ymdStr).append(";")
+               .append(escapeCsv(entry.getKey())).append(";")
                .append(escapeCsv(first.getYsite0())).append(";")
-               .append("MAD;")
-               .append(escapeCsv(entry.getKey())).append("\n");
+               .append("MAD").append("\n");
 
             for (YdevisMobile d : lines) {
-                // L: ;TYPE;;ARTICLE_REF;UN;QTY;PRICE;MOBILE_KEY
-                csv.append("L;;")
+                // L: L;ARTICLE_REF;UNIT;QTY;PRICE
+                csv.append("L;")
                    .append(escapeCsv(d.getYitmref0())).append(";")
-                   .append("UN;")
+                   .append(escapeCsv(d.getYunit0() != null ? d.getYunit0() : "UN")).append(";")
                    .append(d.getYqty0()).append(";")
-                   .append(d.getYprice0()).append(";")
-                   .append(escapeCsv(entry.getKey())).append("\n");
+                   .append(d.getYprice0()).append("\n");
             }
         }
 

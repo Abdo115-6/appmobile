@@ -165,6 +165,7 @@ class _DevisScreenState extends State<DevisScreen> {
         articleName: _selectedArticle!.nom,
         quantity: adjustedQty,
         price: price,
+        unit: _selectedArticle!.sau ?? 'UN',
         coefficient: coeff,
         cartons: cartons,
         creusr0: UserSession().email,
