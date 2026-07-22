@@ -78,13 +78,32 @@ public class DevisController {
         return "MOB" + String.format("%07d", nextNum);
     }
 
+    @PostMapping("/confirm")
+    public ResponseEntity<String> confirm(@RequestBody DevisConfirmRequest request) {
+        String mobileKey = request.getMobileKey();
+        if (mobileKey == null || mobileKey.isEmpty()) {
+            mobileKey = getNextMobileKey();
+        }
+        saveDevisLines(request, mobileKey);
+        return ResponseEntity.ok("Devis confirmed with key: " + mobileKey);
+    }
+
     @PostMapping("/confirm-and-export")
     public ResponseEntity<String> confirmAndExport(@RequestBody DevisConfirmRequest request) {
         String mobileKey = request.getMobileKey();
         if (mobileKey == null || mobileKey.isEmpty()) {
             mobileKey = getNextMobileKey();
         }
+        saveDevisLines(request, mobileKey);
+        try {
+            saveCsvToServerDir(request, mobileKey);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Failed to save CSV: " + e.getMessage());
+        }
+        return ResponseEntity.ok("Devis confirmed and CSV saved on server with key: " + mobileKey);
+    }
 
+    private void saveDevisLines(DevisConfirmRequest request, String mobileKey) {
         for (DevisRequest article : request.getArticles()) {
             YdevisMobile devis = new YdevisMobile();
             String yid = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
@@ -111,14 +130,6 @@ public class DevisController {
             devis.setYmobkey0(mobileKey);
             ydevisMobileRepository.save(devis);
         }
-
-        try {
-            saveCsvToServerDir(request, mobileKey);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().body("Failed to save CSV: " + e.getMessage());
-        }
-
-        return ResponseEntity.ok("Devis confirmed and CSV saved on server with key: " + mobileKey);
     }
 
     private void saveCsvToServerDir(DevisConfirmRequest request, String mobileKey) throws IOException {
