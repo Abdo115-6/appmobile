@@ -1,5 +1,6 @@
 package com.quiz.backend.config;
 
+import org.apache.catalina.connector.Connector;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
@@ -18,6 +19,12 @@ public class TomcatConfig {
                 protocol.setMaxHttpRequestHeaderSize(65536);
                 protocol.setMaxHeaderCount(200);
             });
+            // Add HTTP connector on 8080 for Android app
+            Connector httpConnector = new Connector(TomcatServletWebServerFactory.DEFAULT_PROTOCOL);
+            httpConnector.setPort(8080);
+            httpConnector.setScheme("http");
+            httpConnector.setSecure(false);
+            factory.addAdditionalTomcatConnectors(httpConnector);
         };
     }
 }
