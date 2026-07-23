@@ -55,4 +55,7 @@ public interface ApiService {
 
     @GET("api/devis/export")
     Call<ResponseBody> exportDevisCsv();
+
+    @POST("api/devis/export-all")
+    Call<ResponseBody> exportAllDevisCsv();
 }

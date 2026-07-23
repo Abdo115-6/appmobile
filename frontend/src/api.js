@@ -30,7 +30,12 @@ export const api = {
     request('/devis/confirm', { method: 'POST', body: JSON.stringify(body) }),
   confirmAndExport: (body) =>
     request('/devis/confirm-and-export', { method: 'POST', body: JSON.stringify(body) }),
-  exportAllCsv: () => fetch(BASE + '/devis/export'),
+  exportAllCsv: () => fetch(BASE + '/devis/export').then(r => { if (!r.ok) throw new Error('Export failed'); return r }),
+  exportAllCsvServer: async () => {
+    const res = await fetch(BASE + '/devis/export-all', { method: 'POST' })
+    if (!res.ok) throw new Error(await res.text().catch(() => 'HTTP ' + res.status))
+    return await res.text()
+  },
 
   submitInventory: (body) =>
     request('/inventory', { method: 'POST', body: JSON.stringify(body) }),

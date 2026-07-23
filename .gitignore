@@ -39,3 +39,9 @@ agent-skills/
 # Env
 .env
 *.log
+
+# Build output
+target/
+
+# Generated CSV exports
+backend/csv-exports/

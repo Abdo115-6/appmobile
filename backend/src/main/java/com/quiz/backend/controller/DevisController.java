@@ -169,6 +169,59 @@ public class DevisController {
                 .toList();
     }
 
+    @PostMapping("/export-all")
+    public ResponseEntity<String> exportAllCsv() {
+        List<YdevisMobile> all = ydevisMobileRepository.findAll();
+        StringBuilder csv = new StringBuilder();
+        DateTimeFormatter ymd = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+        Map<String, List<YdevisMobile>> grouped = new LinkedHashMap<>();
+        for (YdevisMobile d : all) {
+            String mk = d.getYmobkey0() != null ? d.getYmobkey0() : "NOKEY";
+            grouped.computeIfAbsent(mk, k -> new java.util.ArrayList<>()).add(d);
+        }
+
+        for (Map.Entry<String, List<YdevisMobile>> entry : grouped.entrySet()) {
+            List<YdevisMobile> lines = entry.getValue();
+            YdevisMobile first = lines.get(0);
+            String ymdStr = first.getCredattim0() != null
+                    ? first.getCredattim0().format(ymd) : LocalDate.now().format(ymd);
+
+            csv.append("E;")
+               .append(escapeCsv(first.getYsite0())).append(";")
+               .append("SQN").append(";")
+               .append(escapeCsv(first.getYbpcnum0())).append(";")
+               .append(ymdStr).append(";")
+               .append(escapeCsv(entry.getKey())).append(";")
+               .append(escapeCsv(first.getYsite0())).append(";")
+               .append("MAD").append("\n");
+
+            for (YdevisMobile d : lines) {
+                csv.append("L;")
+                   .append(escapeCsv(d.getYitmref0())).append(";")
+                   .append(escapeCsv(d.getYunit0() != null ? d.getYunit0() : "UN")).append(";")
+                   .append(d.getYqty0()).append(";")
+                   .append(d.getYprice0()).append("\n");
+            }
+        }
+
+        File dir = new File("csv-exports");
+        if (!dir.exists()) dir.mkdirs();
+
+        // Write to temp file first, then rename to avoid file locks
+        File tmpFile = new File(dir, "devis_export.tmp");
+        File csvFile = new File(dir, "devis_export.csv");
+        try (FileWriter writer = new FileWriter(tmpFile)) {
+            writer.write(csv.toString());
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Failed to write CSV: " + e.getMessage());
+        }
+        csvFile.delete();
+        tmpFile.renameTo(csvFile);
+
+        return ResponseEntity.ok("Exported all devis to csv-exports/devis_export.csv");
+    }
+
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportCsv() {
         List<YdevisMobile> all = ydevisMobileRepository.findAll();

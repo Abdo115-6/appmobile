@@ -23,6 +23,7 @@ export default function Devis() {
   const [clientDebounce, setClientDebounce] = useState(null)
   const [articleDebounce, setArticleDebounce] = useState(null)
   const [showScanner, setShowScanner] = useState(false)
+  const [exportingAll, setExportingAll] = useState(false)
   const [toast, setToast] = useState('')
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -183,6 +184,22 @@ export default function Devis() {
   const handleExport = () => {
     if (entries.length === 0) return
     exportMutation.mutate(buildBody())
+  }
+
+  const handleExportAll = async () => {
+    setExportingAll(true)
+    try {
+      const msg = await api.exportAllCsvServer()
+      setToast(msg)
+      setTimeout(() => setToast(''), 3000)
+    } catch (err) {
+      const msg = 'Export error: ' + err.message
+      setError(msg)
+      setToast(msg)
+      setTimeout(() => setToast(''), 3000)
+    } finally {
+      setExportingAll(false)
+    }
   }
 
   const clearForm = () => {
@@ -393,6 +410,12 @@ export default function Devis() {
 
   return (
     <div className="px-4 space-y-4">
+      {/* Export All button */}
+      <button onClick={handleExportAll} disabled={exportingAll}
+        className="w-full py-2.5 rounded-xl bg-card-stroke text-white text-xs font-medium disabled:opacity-50">
+        {exportingAll ? 'Exporting...' : 'Export All CSVs'}
+      </button>
+
       {/* Site */}
       <div>
         <label className="text-xs text-on-surface-variant font-medium mb-1 block">Site</label>
